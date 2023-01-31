@@ -53,7 +53,15 @@ function files_check_config($name, $value, $lang) {
  *         The id of the user that will be deleted
  */
 function files_delete_user($id) {
-    // TODO
+	global $sql, $db_prefix;
+
+	// Delete from database
+	$sql->exec("DELETE FROM {$db_prefix}files_public WHERE `owner` = " . $sql->quote($id));
+	$sql->exec("DELETE FROM {$db_prefix}files_quotas WHERE `user_id` = " . $sql->quote($id));
+
+    // Delete all the files
+	rrmdir(OMMP_ROOT . "/data/$id/");
+
 }
 
 /**
