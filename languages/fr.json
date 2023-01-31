@@ -1,0 +1,23 @@
+{
+    "@name": "Français",
+    "@author": "L'Équipe OMMP",
+    "@description": "Traduction française pour le module de gestion de fichier",
+    "@module_name": "Fichiers",
+    "@module_description": "Ce module est destiné à la gestion de fichiers en ligne pour les utilisateurs de la plateforme.",
+	"files.allow_public_files#name": "Fichiers publiques",
+	"files.allow_public_files#desc": "Autoriser l'utilisateur à publier des fichiers publiques accessibles par tout le monde",
+	"files.allow_private_files#name": "Fichiers privés",
+	"files.allow_private_files#desc": "Autoriser l'utilisateur gérer des fichiers privés, visibles uniquement par lui",
+	"files.list_public_files#name": "Lister les fichiers publiques",
+	"files.list_public_files#desc": "Autoriser l'utilisateur afficher la liste de ses fichiers publiques",
+	"files.quota#name": "Stockage par utilisateur",
+	"files.quota#desc": "Taille maximum en octets autorisée pour chaque utilisateur pour ses fichiers (mettre 0 pour ne pas limiter)",
+	"files.bypass_quota#name": "Dépasser le quota",
+	"files.bypass_quota#desc": "Autoriser l'utilisateur à dépasser le quota de stockage",
+	"files.use_trash#name": "Utiliser la corbeille",
+	"files.use_trash#desc": "Autoriser l'utilisateur à mettre ses fichier dans la corbeille après suppression (si désactivé les fichiers seront directement supprimés sans récupération possible)",
+	"files.use_shortlinks#name": "Utiliser des liens courts",
+	"files.use_shortlinks#desc": "Autoriser l'utilisateur à générer un lien court lors d'un partage de fichier en publique (si le module \"shortlink\" est actif)",
+	"files.images_preview#name": "Miniature des images",
+	"files.images_preview#desc": "Générer une miniature pour les fichiers d'image pris en charge"
+}

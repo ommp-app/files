@@ -1,0 +1,25 @@
+{
+    "configurations": {
+		"quota": "0",
+		"use_shortlinks": "1",
+		"images_preview": "1"
+    },
+    "rights": {
+        "use": [1, 1, 1], 
+        "use_media": [1, 1, 1],
+		"allow_public_files": [1, 1, 1],
+		"allow_private_files": [1, 1, 0],
+		"list_public_files": [1, 1, 0],
+		"bypass_quota": [1, 0, 1],
+		"use_trash": [1, 1, 0]
+    },
+    "protected": {
+        "use": [0, 0, 0],
+        "use_media": [1, 1, 1],
+		"allow_public_files": [0, 0, 0],
+		"allow_private_files": [0, 0, 1],
+		"list_public_files": [0, 0, 1],
+		"bypass_quota": [0, 0, 1],
+		"use_trash": [0, 0, 1]
+    }
+}

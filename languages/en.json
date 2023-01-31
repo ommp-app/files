@@ -1,0 +1,23 @@
+{
+    "@name": "English",
+    "@author": "The OMMP Team",
+    "@description": "English translation for the file management module",
+    "@module_name": "Files",
+    "@module_description": "This module is intended for online file management for platform users.",
+	"files.allow_public_files#name": "Public files",
+	"files.allow_public_files#desc": "Allow user to publish public files accessible by everyone",
+	"files.allow_private_files#name": "Private files",
+	"files.allow_private_files#desc": "Allow the user to manage private files, visible only to him",
+	"files.list_public_files#name": "List public files",
+	"files.list_public_files#desc": "Allow user to view list of public files",
+	"files.quota#name": "Storage per user",
+	"files.quota#desc": "Maximum size in bytes authorized for each user for his files (put 0 not to limit)",
+	"files.bypass_quota#name": "Exceed quota",
+	"files.bypass_quota#desc": "Allow user to exceed storage quota",
+	"files.use_trash#name": "Use the recycle bin",
+	"files.use_trash#desc": "Allow the user to put his files in the trash after deletion (if disabled the files will be directly deleted without possible recovery)",
+	"files.use_shortlinks#name": "Use short links",
+	"files.use_shortlinks#desc": "Allow the user to generate a short link when sharing a file in public (if the \"shortlink\" module is active)",
+	"files.images_preview#name": "Thumbnails for images",
+	"files.images_preview#desc": "Generate thumbnail for supported image files"
+}
