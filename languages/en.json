@@ -19,5 +19,7 @@
 	"files.use_shortlinks#name": "Use short links",
 	"files.use_shortlinks#desc": "Allow the user to generate a short link when sharing a file in public (if the \"shortlink\" module is active)",
 	"files.images_preview#name": "Thumbnails for images",
-	"files.images_preview#desc": "Generate thumbnail for supported image files"
+	"files.images_preview#desc": "Generate thumbnail for supported image files",
+	"value_0_or_1": "Please enter 0 or 1",
+	"must_be_positive_integer": "Please enter a positive integer"
 }

@@ -19,5 +19,7 @@
 	"files.use_shortlinks#name": "Utiliser des liens courts",
 	"files.use_shortlinks#desc": "Autoriser l'utilisateur à générer un lien court lors d'un partage de fichier en publique (si le module \"shortlink\" est actif)",
 	"files.images_preview#name": "Miniature des images",
-	"files.images_preview#desc": "Générer une miniature pour les fichiers d'image pris en charge"
+	"files.images_preview#desc": "Générer une miniature pour les fichiers d'image pris en charge",
+	"value_0_or_1": "Veuillez entrer 0 ou 1",
+	"must_be_positive_integer": "Veuillez entrer un entier positif"
 }

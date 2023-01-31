@@ -24,7 +24,23 @@
  *      else a string explaination of the error
  */
 function files_check_config($name, $value, $lang) {
-    // TODO
+    
+	// Booleans
+	if ($name == "images_preview" || $name == "use_shortlinks") {
+		if ($value !== "0" && $value !== "1") {
+			return $lang->get('value_0_or_1');
+		}
+		return TRUE;
+	}
+
+	// Positive integers
+    if ($name == "quota") {
+		if (!ctype_digit($value)) {
+			return $lang->get('must_be_positive_integer');
+		}
+		return TRUE;
+	}
+
 	return FALSE;
 }
 
