@@ -1,0 +1,27 @@
+<script src="{S:DIR}prepared_media/files/mime_types.js?v={S:PAGE_RESOURCES_VERSION}"></script>
+<script src="{S:DIR}prepared_media/files/main.js?v={S:PAGE_RESOURCES_VERSION}"></script>
+<div class="row d-flex justify-content-center">
+    <div class="col-lg-10 col-xl-8 col-xxl-7 mt-5 text-center">
+		<h1>{L:MY_FILES}</h1>
+        <div id="content" class="text-start mt-3"></div>
+    </div>
+</div>
+<script>
+// Check if we can display files list
+if ({R:files.allow_private_files}) {
+	// Get path if needed
+	var path = '/';
+	if (location.hash) {
+		path = location.hash.substr(1);
+	}
+	// Display private files list
+	displayPrivateFileList('content', path);
+	// Listen hash change
+	window.addEventListener('hashchange', (e) => {
+		// Get the path
+		var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
+		// Update the display
+		displayPrivateFileList('content', hash);
+	}, false);
+}
+</script>

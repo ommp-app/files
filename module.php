@@ -60,7 +60,7 @@ function files_delete_user($id) {
 	$sql->exec("DELETE FROM {$db_prefix}files_quotas WHERE `user_id` = " . $sql->quote($id));
 
     // Delete all the files
-	rrmdir(OMMP_ROOT . "/data/$id/");
+	rrmdir(OMMP_ROOT . "/data/files/$id/");
 
 }
 
@@ -77,7 +77,107 @@ function files_delete_user($id) {
  *      FALSE if the action does not exists
  */
 function files_process_api($action, $data) {
-    // TODO
+	global $user;
+
+	/**
+	 * Return the informations about a file or directory
+	 * 
+	 * @param string $path
+	 * 		The path of the file
+	 * 
+	 * @return array|null
+	 * 		An array containing the informations
+	 * 		NULL is the file does not exists
+	 */
+	function get_file_informations($path) {
+		global $user;
+		if (!file_exists($path)) {
+			return NULL;
+		}
+		$is_dir = is_dir($path);
+		$infos = [
+			"type" => $is_dir ? "dir" : "file",
+			"creation" => filectime($path),
+			"formatted_creation" => date($user->module_lang->get("date_format"), filectime($path)),
+			"modification" => filemtime($path),
+			"formatted_modification" => date($user->module_lang->get("date_format"), filemtime($path)),
+			"access" => fileatime($path),
+			"formatted_access" => date($user->module_lang->get("date_format"), fileatime($path))
+		];
+		// Add special informations for folders
+		if ($is_dir) {
+			$infos['child'] = count(scandir($path)) - 2;
+			return $infos;
+		}
+		// Add special informations for files
+		$infos['mime'] = better_mime_type($path);
+		$infos['size'] = filesize($path);
+		return $infos;
+	}
+
+	// Check if user directory exists
+	$user_dir = OMMP_ROOT . "/data/files/$user->id";
+	if (!is_dir($user_dir)) {
+		@mkdir(OMMP_ROOT . "/data/files/$user->id", 0777, TRUE);
+	}
+    
+	if ($action == "list-files") {
+
+		// Check the parameters
+		if (!check_keys($data, ["path"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare path
+		$path = $data['path'];
+		$path = str_replace("\\", "/", $path);
+		$path = str_replace("../", "", $path);
+		$path = str_replace("/..", "", $path);
+		while (strpos($path, "//") !== FALSE) {
+			$path = str_replace("//", "/", $path);
+		}
+		if (substr($path, 0, 1) != "/") {
+			$path = "/" . $path;
+		}
+		if (substr($path, -1) == "/") {
+			$path = substr($path, 0, -1);
+		}
+		$short_path = $path;
+		$path = $user_dir . $path;
+
+		// Check if directory exists
+		if (!is_dir($path)) {
+			// Return an error but check if the path corresponds to a dir
+			return [
+				"error" => $user->module_lang->get("dir_does_not_exists"),
+				"is_file" => file_exists($path),
+				"clean_path" => $short_path
+			];
+		}
+
+		// Get the content of the directory
+		$content = [];
+		foreach (scandir($path) as $file) {
+			if ($file == "." || $file == "..") {
+				continue;
+			}
+			$content[$file] = get_file_informations("$path/$file");
+		}
+
+		// Return the list
+		return [
+			"ok" => TRUE,
+			"files" => $content,
+			"clean_path" => $short_path
+		];
+
+	}
+
     return FALSE;
 }
 
@@ -100,8 +200,11 @@ function files_process_api($action, $data) {
  *      FALSE to generate a 404 error
  */
 function files_process_page($page, $pages_path) {
-    // TODO
-	return FALSE;
+    global $user;
+    // This module uses only the HTML files without processing them
+    return module_simple_html($page, $pages_path, [], [
+		"" => $user->module_lang->get("my_files")
+    ]);
 }
 
 /**
