@@ -6,6 +6,7 @@ let mimeTypes = {
 	'audio/webm': '{JS:L:AUDIO_FILE} WEBM',
 	'audio/3gpp2': '{JS:L:AUDIO_FILE} 3GPP2',
 	'audio/3gpp': '{JS:L:AUDIO_FILE} 3GPP',
+	'audio/mpeg': '{JS:L:AUDIO_FILE} MPEG',
 
 	'application/x-abiword': '{JS:L:ABIWORD}',
 	'application/vnd.amazon.ebook': '{JS:L:KINDLE}',
