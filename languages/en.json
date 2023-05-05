@@ -100,5 +100,14 @@
 	"iec_units": "KiB,MiB,GiB,TiB,PiB,EiB,ZiB,YiB",
 	"byte_unit": "B",
 	"next": "Next",
-	"prev": "Previous"
+	"prev": "Previous",
+	"save": "Save",
+	"code": "Code",
+	"text": "Text",
+	"file_not_saved": "The file was not saved. Do you want to save it?",
+	"warning": "Warning",
+	"yes": "Yes",
+	"no": "No",
+	"write_error": "Error while writing file",
+	"file_saved": "File saved"
 }

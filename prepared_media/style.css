@@ -41,3 +41,34 @@
 #image-viewer > a > img {
     opacity: 0.5;
 }
+
+#text-editor {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1021;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 3%;
+}
+
+#text-editor textarea {
+    width: 100%;
+    min-width: 100%;
+    height: 95%;
+    max-height: 95%;
+    min-height: 20%;
+    padding: 1em;
+}
+
+#text-controls {
+    margin-bottom: 1%;
+}
+
+@media (max-width: 767px) {
+    .hidden-mobile {
+        display: none;
+    }
+}

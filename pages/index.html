@@ -1,4 +1,5 @@
 <script src="{S:DIR}prepared_media/files/mime_types.js?v={S:PAGE_RESOURCES_VERSION}"></script>
+<script src="{S:DIR}prepared_media/files/3rd-party.js?v={S:PAGE_RESOURCES_VERSION}"></script>
 <script src="{S:DIR}prepared_media/files/main.js?v={S:PAGE_RESOURCES_VERSION}"></script>
 <link rel="stylesheet" href="{S:DIR}prepared_media/files/style.css?v={S:PAGE_RESOURCES_VERSION}" />
 <div class="row d-flex justify-content-center">
@@ -10,11 +11,12 @@
 <div id="image-viewer">
 	<img src="{S:DIR}media/ommp/images/loading.gif" alt=""/>
 	<img src="" id="image-view" alt="" />
-	<a id="image-prev" class="prevent-close-viewer" href=""><img class="prevent-close-viewer" src="{S:DIR}media/files/arrow.svg" alt="{L:PREV}" title="{L:PREV}" /></a>
-	<a id="image-next" class="prevent-close-viewer" href=""><img class="prevent-close-viewer" src="{S:DIR}media/files/arrow.svg" alt="{L:NEXT}" title="{L:NEXT}" /></a>
+	<a id="image-prev" class="prevent-close" href=""><img class="prevent-close" src="{S:DIR}media/files/arrow.svg" alt="{L:PREV}" title="{L:PREV}" /></a>
+	<a id="image-next" class="prevent-close" href=""><img class="prevent-close" src="{S:DIR}media/files/arrow.svg" alt="{L:NEXT}" title="{L:NEXT}" /></a>
 </div>
 <div id="text-editor">
-	
+	<div id="text-controls"></div>
+	<textarea id="text-content" class="prevent-close" spellcheck="true"></textarea>
 </div>
 <script>
 // Check if we can display files list

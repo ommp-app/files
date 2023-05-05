@@ -1,3 +1,6 @@
+// The last version of the file (to detect if file has changed)
+let lastFileContent = '', lastFile = '';
+
 // Fix negative modulo (thanks JavaScript)
 Number.prototype.mod = function(n) {
 	return ((this % n) + n) % n;
@@ -39,15 +42,6 @@ function displayPrivateFileList(container, path, layout='list') {
 }
 
 /**
- * Update the URL hash without triggering 'hashchange' event
- * 
- * @param {*} hash The new hash
- */
-function updateHash(hash) {
-	history.pushState({}, '', '#' + hash);
-}
-
-/**
  * Displays the current directory with clickable links
  * 
  * @param {*} container The id of the parent element
@@ -67,6 +61,7 @@ function displayCurrentDir(container, path) {
 	});
 	// Close the viewers if needed
 	closeImagePreview();
+	closeTextEditor();
 }
 
 /**
@@ -74,12 +69,16 @@ function displayCurrentDir(container, path) {
  * 
  * @param {*} content The text of the button (won't be escaped)
  * @param {*} callback The function to call on click
+ * @param {*} className The name of the class to add (optional)
  * 
  * @return The HTML element of the button (not the source code!)
  */
-function getInlineButton(content, callback) {
+function getInlineButton(content, callback, className='') {
 	var div = document.createElement('div');
 	div.classList.add('btn', 'pt-0', 'pb-0', 'ps-1', 'pe-1', 'ms-1', 'me-1', 'btn-light');
+	if (className != '') {
+		div.classList.add(className);
+	}
 	div.style.verticalAlign = 'baseline';
 	div.setAttribute('role', 'button');
 	div.setAttribute('aria-pressed', 'true');
@@ -100,12 +99,12 @@ function renderLayoutList(container, path, files) {
 	$('#' + container).html('');
 	displayCurrentDir(container, path);
 	// Display the files
-	var content = '<table class="w-100 mt-3 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20">{JS:L:TYPE}</th><th class="pb-2 w-20">{JS:L:SIZE} / {JS:L:CHILD}</th><th class="pb-2 w-30">{JS:L:LAST_MODIFICATION}</th></tr>';
+	var content = '<table class="w-100 mt-3 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th><th class="pb-2 w-30 hidden-mobile">{JS:L:LAST_MODIFICATION}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
 		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" onclick="location.href=\'#' + path + '/' + file + '\';"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) +
-		'" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" />' + escapeHtml(file) + '</span></td><td class="pb-2">' + (is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime)) +
-		'</td><td class="pb-2">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td><td class="pb-2">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
+		'" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" />' + escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile">' + (is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime)) +
+		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
 }
@@ -191,6 +190,9 @@ function previewPrivateFile(file, path) {
 	// If file is an image
 	if (file.mime.startsWith('image/')) {
 
+		// Close other previews
+		closeTextEditor();
+
 		// Display the image viewer
 		$('#image-view').attr('src', '');
 		$('#image-view').attr('src', '{JS:S:DIR}private-file' + path + '?v=' + file.modification);
@@ -226,15 +228,33 @@ function previewPrivateFile(file, path) {
 		};
 
 		// Set the "close" url
-		$('#image-viewer').on('click', (e) => {e.target.classList.contains('prevent-close-viewer') ? null : location.href = '#' + parent;});
+		$('#image-viewer').on('click', (e) => {e.target.classList.contains('prevent-close') ? null : location.href = '#' + parent;});
 
 	}
 
 	// If file is a text
 	else if (file.mime.startsWith('text/')) {
 
-		// Display the text editor
+		// Close other previews
+		closeImagePreview();
 
+		// Get the content of the file
+		var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+				// Set the text
+                $('#text-content').val(this.responseText);
+				lastFileContent = $('#text-content').val(); // We use the textarea content and not the original on purpose because it can create differences with line break encoding
+				lastFile = path;
+				// Display the text editor
+				$('#text-editor').show();
+            }
+        };
+        xhttp.open('GET', '{JS:S:DIR}private-file' + path + '?v=' + file.modification, true);
+        xhttp.send();
+
+		// Set the "close" url
+		$('#text-editor').on('click', (e) => {e.target.classList.contains('prevent-close') ? null : location.href = '#' + getParentDirectory(path);});
 
 	}
 
@@ -248,6 +268,43 @@ function closeImagePreview() {
 	$('#image-viewer').hide();
 	$('#image-view').attr('src', '');
 	document.onkeydown = null;
+}
+
+/**
+ * Close the text editor
+ */
+function closeTextEditor() {
+	// Check if editor is opened
+	if ($('#text-editor').is(":visible")) {
+		// Display a confirmation if needed
+		let newContent = $('#text-content').val();
+		if (newContent != lastFileContent) {
+			promptChoice('{JS:L:FILE_NOT_SAVED}', '{JS:L:YES}', '{JS:L:NO}', () => {
+				saveTextFile(lastFile, newContent);
+			}, () => {}, '{JS:L:WARNING}');
+		}
+	}
+	// Hide the editor
+	$('#text-editor').hide();
+}
+
+/**
+ * Saves a text file
+ * @param {*} path The file path to save
+ * @param {*} content The content of the file
+ */
+function saveTextFile(path, content) {
+	Api.apiRequest('files', 'update-text-file', {'path': path, 'content': content}, r => {
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Save last version localy
+		lastFileContent = content;
+		// Display success message
+		notif('{JS:L:FILE_SAVED}');
+	});
 }
 
 /**
@@ -303,4 +360,22 @@ function humanFileSize(bytes, si=false, dp=1) {
 		++u;
 	} while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
 	return bytes.toFixed(dp) + ' ' + units[u];
+}
+
+// Init some elements
+window.onload = function() {
+
+	// Add buttons for text edit
+	$(getInlineButton('{JS:L:SAVE}', () => saveTextFile(lastFile, $('#text-content').val()), 'prevent-close')).appendTo('#text-controls');
+	$(getInlineButton('{JS:L:CODE}', (e) => {
+		// Toggle code/text mode
+		$('#text-content').toggleClass('code');
+		$(e.target).html($('#text-content')[0].classList.contains('code') ? '{JS:L:TEXT}' : '{JS:L:CODE}');
+		// Disable spell check
+		$('#text-content').attr('spellcheck', $('#text-content').attr('spellcheck') == 'true' ? 'false' : 'true');
+	}, 'prevent-close')).appendTo('#text-controls');
+
+	// Enable indentation support for text editor
+	enableIndentation();
+	
 }

@@ -100,5 +100,14 @@
 	"iec_units": "Kio,Mio,Gio,Tio,Pio,Eio,Zio,Yio",
 	"byte_unit": "o",
 	"next": "Suivant",
-	"prev": "Précédent"
+	"prev": "Précédent",
+	"save": "Enregistrer",
+	"code": "Code",
+	"text": "Texte",
+	"file_not_saved": "Le fichier n'a pas été enregistré. Voulez-vous l'enregistrer ?",
+	"warning": "Attention",
+	"yes": "Oui",
+	"no": "Non",
+	"write_error": "Erreur lors de l'écriture du fichier",
+	"file_saved": "Fichier sauvegardé"
 }

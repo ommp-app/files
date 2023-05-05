@@ -115,6 +115,31 @@ function files_process_api($action, $data) {
 		return $infos;
 	}
 
+	/**
+	 * Return the prepared path from a given path
+	 * 
+	 * @param string $path
+	 * 		The path to prepare
+	 * @return string
+	 * 		The prepared path inside the user directory
+	 */
+	function prepare_path($path) {
+		global $user_dir;
+		$path = str_replace("\\", "/", $path);
+		$path = str_replace("../", "", $path);
+		$path = str_replace("/..", "", $path);
+		while (strpos($path, "//") !== FALSE) {
+			$path = str_replace("//", "/", $path);
+		}
+		if (substr($path, 0, 1) != "/") {
+			$path = "/" . $path;
+		}
+		if (substr($path, -1) == "/") {
+			$path = substr($path, 0, -1);
+		}
+		return $path;
+	}
+
 	// Check if user directory exists
 	$user_dir = OMMP_ROOT . "/data/files/$user->id";
 	if (!is_dir($user_dir)) {
@@ -134,21 +159,8 @@ function files_process_api($action, $data) {
 		}
 
 		// Prepare path
-		$path = $data['path'];
-		$path = str_replace("\\", "/", $path);
-		$path = str_replace("../", "", $path);
-		$path = str_replace("/..", "", $path);
-		while (strpos($path, "//") !== FALSE) {
-			$path = str_replace("//", "/", $path);
-		}
-		if (substr($path, 0, 1) != "/") {
-			$path = "/" . $path;
-		}
-		if (substr($path, -1) == "/") {
-			$path = substr($path, 0, -1);
-		}
-		$short_path = $path;
-		$path = $user_dir . $path;
+		$short_path =prepare_path($data['path']);
+		$path = $user_dir . $short_path;
 
 		// Check if directory exists
 		if (!is_dir($path)) {
@@ -175,6 +187,39 @@ function files_process_api($action, $data) {
 			"ok" => TRUE,
 			"files" => $content,
 			"clean_path" => $short_path
+		];
+
+	} else if ($action == "update-text-file") {
+
+		// Check the parameters
+		if (!check_keys($data, ["path"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare path
+		$short_path =prepare_path($data['path']);
+		$path = $user_dir . $short_path;
+
+		// Write file
+		$result = file_put_contents($path, $data['content']);
+
+		// Check for error
+		if ($result === FALSE) {
+			return [
+				"error" => $user->module_lang->get("write_error")
+			];
+		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"clean_path" => $short_path,
+			"bytes_write" => $result
 		];
 
 	}
