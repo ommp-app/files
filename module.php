@@ -237,6 +237,13 @@ function files_url_handler($url) {
 		header('Content-Type: ' . mime_content_type($path));
 		header('Content-Length: ' . filesize($path));
 
+		// Set cache expiration in one year
+		$seconds_to_cache = 365*24*60*60;
+		$ts = gmdate("D, d M Y H:i:s", time() + $seconds_to_cache) . " GMT";
+		header("Expires: $ts");
+		header("Pragma: cache");
+		header("Cache-Control: max-age=$seconds_to_cache");
+
 		// Read the file
 		readfile($path);
 

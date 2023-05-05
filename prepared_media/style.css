@@ -27,7 +27,7 @@
 }
 
 #image-prev {
-    left: 10%;
+    left: 5%;
 }
 
 #image-prev > img {
@@ -35,7 +35,7 @@
 }
 
 #image-next {
-    right: 10%;
+    right: 5%;
 }
 
 #image-viewer > a > img {
