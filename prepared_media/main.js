@@ -195,7 +195,8 @@ function previewPrivateFile(file, path) {
 
 		// Display the image viewer
 		$('#image-view').attr('src', '');
-		$('#image-view').attr('src', '{JS:S:DIR}private-file' + path + '?v=' + file.modification);
+		$('#image-loader').show();
+		$('#image-view').attr('src', '{JS:S:DIR}private-file' + path + '?v=' + file.modification).on('load', () => {$('#image-loader').hide();});
 		$('#image-viewer').show();
 
 		// Get the parent directory
