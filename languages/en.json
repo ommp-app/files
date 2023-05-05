@@ -98,5 +98,7 @@
 	"elements": "elements",
 	"si_units": "kB,MB,GB,TB,PB,EB,ZB,YB",
 	"iec_units": "KiB,MiB,GiB,TiB,PiB,EiB,ZiB,YiB",
-	"byte_unit": "B"
+	"byte_unit": "B",
+	"next": "Next",
+	"prev": "Previous"
 }

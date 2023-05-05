@@ -1,3 +1,8 @@
+// Fix negative modulo (thanks JavaScript)
+Number.prototype.mod = function(n) {
+	return ((this % n) + n) % n;
+}
+
 /**
  * Display the list of private files
  * 
@@ -14,7 +19,7 @@ function displayPrivateFileList(container, path, layout='list') {
 	Api.apiRequest('files', 'list-files', {'path': path}, r => {
 		// If path is a file, then displays it
 		if (typeof r.is_file !== 'undefined' && r.is_file) {
-			previewPrivateFile(path);
+			previewPrivateFile(r.file_data, r.clean_path);
 			return;
 		}
 		// Check for errors
@@ -60,6 +65,8 @@ function displayCurrentDir(container, path) {
 		$('#current-path').append(getInlineButton(dir || '{JS:L:MY_FILES}', () => {location.href = '#' + path;}));
 		$('#current-path').append('/');
 	});
+	// Close the viewers if needed
+	closeImagePreview();
 }
 
 /**
@@ -164,12 +171,109 @@ function renderLayoutGrid(container, path, files) {
 }
 
 /**
+ * Filter an object
+ * @param {*} obj The object to filter
+ * @param {*} callback The filter function
+ * @returns The filtered object
+ */
+function filterObject(obj, callback) {
+	return Object.fromEntries(Object.entries(obj).filter(([key, val]) => callback(key, val)));
+}
+
+/**
  * Displays the preview for a private file
  * 
+ * @param {*} file The data about the file
  * @param {*} path The path of the file
  */
-function previewPrivateFile(path) {
-	// TODO
+function previewPrivateFile(file, path) {
+	
+	// If file is an image
+	if (file.mime.startsWith('image/')) {
+
+		// Display the image viewer
+		$('#image-view').attr('src', '');
+		$('#image-view').attr('src', '{JS:S:DIR}private-file' + path);
+		$('#image-viewer').show();
+
+		// Get the parent directory
+		let parent = getParentDirectory(path), fileName = getFileName(path);
+
+		// Set the next and previous buttons
+		Api.apiRequest('files', 'list-files', {'path': parent}, r => {
+			// Check for errors
+			if (typeof r.error !== 'undefined') {
+				notifError(r.error, '{JS:L:ERROR}');
+				return;
+			}
+			// Filter only the images to get next and previous
+			var images = Object.keys(filterObject(r.files, (key, value) => value.type == 'file' && value.mime.startsWith('image/')));
+			// Set buttons link
+			$('#image-prev').attr('href', '#' + parent + images[(images.indexOf(fileName) - 1).mod(images.length)]);
+			$('#image-next').attr('href', '#' + parent + images[(images.indexOf(fileName) + 1).mod(images.length)]);
+		});
+
+		// Set key binding
+		document.onkeydown = function(e) {
+			if (e.key == 'ArrowLeft') {
+				location.href = $('#image-prev').attr('href');
+			} else if (e.key == 'ArrowRight') {
+				location.href = $('#image-next').attr('href');
+			} else {
+				return;
+			}
+			e.preventDefault();
+		};
+
+		// Set the "close" url
+		$('#image-viewer').on('click', (e) => {e.target.classList.contains('prevent-close-viewer') ? null : location.href = '#' + parent;});
+
+	}
+
+	// If file is a text
+	else if (file.mime.startsWith('text/')) {
+
+		// Display the text editor
+
+
+	}
+
+}
+
+/**
+ * Close the image preview
+ */
+function closeImagePreview() {
+	// Hide the viewer
+	$('#image-viewer').hide();
+	$('#image-view').attr('src', '');
+	document.onkeydown = null;
+}
+
+/**
+ * Return the parent directory for a given file/dir
+ * @param {*} path The path we want to get the parent
+ * @return The parent directory
+ */
+function getParentDirectory(path) {
+	path = path.replace('\\', '/');
+	if (path.endsWith('/')) {
+		path = path.substr(0, path.length - 1);
+	}
+	return path.split('/').slice(0, -1).join('/') + '/';
+}
+
+/**
+ * Return the file name from a given path
+ * @param {*} path The path to get
+ * @return The file name
+ */
+function getFileName(path) {
+	path = path.replace('\\', '/');
+	if (path.endsWith('/')) {
+		path = path.substr(0, path.length - 1);
+	}
+	return path.split('/').pop();
 }
 
 /**

@@ -1,10 +1,17 @@
 <script src="{S:DIR}prepared_media/files/mime_types.js?v={S:PAGE_RESOURCES_VERSION}"></script>
 <script src="{S:DIR}prepared_media/files/main.js?v={S:PAGE_RESOURCES_VERSION}"></script>
+<link rel="stylesheet" href="{S:DIR}prepared_media/files/style.css?v={S:PAGE_RESOURCES_VERSION}" />
 <div class="row d-flex justify-content-center">
     <div class="col-lg-10 col-xl-8 col-xxl-7 mt-5 text-center">
 		<h1>{L:MY_FILES}</h1>
         <div id="content" class="text-start mt-3"></div>
     </div>
+</div>
+<div id="image-viewer">
+	<img src="{S:DIR}media/ommp/images/loading.gif" alt=""/>
+	<img src="" id="image-view" alt="" />
+	<a id="image-prev" class="prevent-close-viewer" href=""><img class="prevent-close-viewer" src="{S:DIR}media/files/arrow.svg" alt="{L:PREV}" title="{L:PREV}" /></a>
+	<a id="image-next" class="prevent-close-viewer" href=""><img class="prevent-close-viewer" src="{S:DIR}media/files/arrow.svg" alt="{L:NEXT}" title="{L:NEXT}" /></a>
 </div>
 <script>
 // Check if we can display files list

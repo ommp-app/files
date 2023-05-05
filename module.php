@@ -156,6 +156,7 @@ function files_process_api($action, $data) {
 			return [
 				"error" => $user->module_lang->get("dir_does_not_exists"),
 				"is_file" => file_exists($path),
+				"file_data" => get_file_informations($path),
 				"clean_path" => $short_path
 			];
 		}
@@ -218,6 +219,31 @@ function files_process_page($page, $pages_path) {
  *      FALSE else (in this case, we will check the url with the remaining modules, order is defined by module's priority value)
  */
 function files_url_handler($url) {
-    // TODO
+	global $user;
+    
+	// Check if url is a private file loading
+	$path = "";
+	if (substr($url, 0, 13) == "private-file/" && strpos($url, "..") === FALSE && $user->has_right("files.allow_private_files")) {
+		$path = OMMP_ROOT . "/data/files/$user->id/" . substr($url, 13);
+	}
+	//print("PATH: $path");
+
+	// TODO: Public file
+
+	// If file exists then we display it
+	if ($path != "" && file_exists($path) && !is_dir($path)) {
+
+		// Set content type and size
+		header('Content-Type: ' . mime_content_type($path));
+		header('Content-Length: ' . filesize($path));
+
+		// Read the file
+		readfile($path);
+
+		// Exit to prevent other executions
+		exit();
+
+	}
+
     return FALSE;
 }

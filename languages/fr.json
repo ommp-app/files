@@ -98,5 +98,7 @@
 	"elements": "éléments",
 	"si_units": "ko,Mo,Go,To,Po,Eo,Zo,Yo",
 	"iec_units": "Kio,Mio,Gio,Tio,Pio,Eio,Zio,Yio",
-	"byte_unit": "o"
+	"byte_unit": "o",
+	"next": "Suivant",
+	"prev": "Précédent"
 }
