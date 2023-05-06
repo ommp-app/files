@@ -95,6 +95,8 @@ function getInlineButton(content, callback, className='') {
  * @param {*} files The list of the files as returned by the API
  */
 function renderLayoutList(container, path, files) {
+	// Save the scroll to restore it in case of a refresh
+	var scroll = [window.scrollX, window.scrollY];
 	// Display current dir
 	$('#' + container).html('');
 	displayCurrentDir(container, path);
@@ -107,6 +109,12 @@ function renderLayoutList(container, path, files) {
 		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
+	// Reset the scroll
+	window.scrollTo({
+		left: scroll[0],
+		top: scroll[1],
+		behavior: 'instant'
+	});
 }
 
 /**
@@ -122,7 +130,7 @@ function getIcon(mime) {
 	}
 	// Special types
 	if (mime == 'application/json') {
-		return '{JS:S:DIR}media/files/icons/text.svg';
+		mime = 'text/plain';
 	}
 	// Get first part
 	if (mime.includes('/')) {
@@ -320,6 +328,8 @@ function saveTextFile(path, content) {
 		lastFileContent = content;
 		// Display success message
 		notif('{JS:L:FILE_SAVED}');
+		// Refresh list
+		displayPrivateFileList('content', getParentDirectory(path));
 	});
 }
 
