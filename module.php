@@ -77,7 +77,7 @@ function files_delete_user($id) {
  *      FALSE if the action does not exists
  */
 function files_process_api($action, $data) {
-	global $user;
+	global $user, $db_prefix, $sql, $config;
 
 	/**
 	 * Return the informations about a file or directory
@@ -140,10 +140,48 @@ function files_process_api($action, $data) {
 		return $path;
 	}
 
+	/**
+	 * Check if a write operation over a given file does not overcome the quota
+	 * Also check if the user can bypass the quota
+	 * 
+	 * @param string $file
+	 * 		The file that will be write
+	 * @param int $size
+	 * 		The size in bytes of the file
+	 * @param int $usage
+	 * 		Current usage for the user
+	 * @return array
+	 * 		[TRUE if the operation is valid or FALSE if the operation cannot be done due to the quota, the usage difference in bytes]
+	 */
+	function check_quota($file, $size, $usage) {
+		global $user, $config;
+		// Get the quota
+		$allowed_quota = intval($config->get("files.quota"));
+		// Get the current size of the file
+		$current_file_size = file_exists($file) ? filesize($file) : 0;
+		// Compute the usage difference cause by this operation
+		$usage_delta = $size - $current_file_size;
+		// If quota is disabled or if user can bypass it, return TRUE
+		if ($allowed_quota == 0 || $user->has_right("files.bypass_quota")) {
+			return [TRUE, $usage_delta];
+		}
+		// Check if the write operation will not overcome the quota
+		return [$allowed_quota >= $usage + $usage_delta, $usage_delta];
+	}
+
 	// Check if user directory exists
 	$user_dir = OMMP_ROOT . "/data/files/$user->id";
 	if (!is_dir($user_dir)) {
 		@mkdir(OMMP_ROOT . "/data/files/$user->id", 0777, TRUE);
+	}
+
+	// Get user usage
+	$usage = dbGetFirstLineSimple("{$db_prefix}files_quotas", "user_id = " . $sql->quote($user->id), "quota", TRUE);
+
+	// Create quota if needed
+	if ($usage === FALSE) {
+		$usage = folder_size($user_dir);
+		$sql->exec("INSERT INTO {$db_prefix}files_quotas VALUES (" . $sql->quote($user->id) . ", $usage)");
 	}
     
 	if ($action == "list-files") {
@@ -205,6 +243,12 @@ function files_process_api($action, $data) {
 		$short_path = prepare_path($data['path']);
 		$path = $user_dir . $short_path;
 
+		// Check the quota
+		$future_quota = check_quota($path, strlen($data['content']), $usage);
+		if (!$future_quota[0]) {
+			return ["error" => $user->module_lang->get("quota_exceeded")];
+		}
+
 		// Write file
 		$result = file_put_contents($path, $data['content']);
 
@@ -214,6 +258,9 @@ function files_process_api($action, $data) {
 				"error" => $user->module_lang->get("write_error")
 			];
 		}
+
+		// Save the new quota
+		$sql->exec("UPDATE {$db_prefix}files_quotas SET quota = quota + $future_quota[1] WHERE user_id = " . $sql->quote($user->id));
 
 		// Return success
 		return [

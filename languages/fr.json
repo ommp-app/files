@@ -109,5 +109,9 @@
 	"yes": "Oui",
 	"no": "Non",
 	"write_error": "Erreur lors de l'écriture du fichier",
-	"file_saved": "Fichier sauvegardé"
+	"file_saved": "Fichier sauvegardé",
+	"upload": "Envoyer",
+	"file_uploaded": "Fichier envoyé",
+	"network_error": "Erreur réseau",
+	"quota_exceeded": "Cette opération vous fait dépasser le quota de stockage autorisé ! Essayez de supprimer des fichiers pour libérer de l'espace."
 }

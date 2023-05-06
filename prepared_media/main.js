@@ -109,6 +109,9 @@ function renderLayoutList(container, path, files) {
 		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
+	// Add the file uploader
+	$('#' + container).append('<div id="file-upload" class="mt-3 mb-4"></div>');
+	appendFileUpload('file-upload');
 	// Reset the scroll
 	window.scrollTo({
 		left: scroll[0],
@@ -304,9 +307,11 @@ function closeTextEditor() {
 		let newContent = $('#text-content').val();
 		if (newContent != lastFileContent) {
 			promptChoice('{JS:L:FILE_NOT_SAVED}', '{JS:L:YES}', '{JS:L:NO}', () => {
-				saveTextFile(lastFile, newContent);
+				saveTextFile(lastFile, newContent, true);
 			}, () => {}, '{JS:L:WARNING}');
 		}
+		// Refresh file list
+		displayPrivateFileList('content', getParentDirectory(lastFile));
 	}
 	// Hide the editor
 	$('#text-editor').hide();
@@ -316,8 +321,9 @@ function closeTextEditor() {
  * Saves a text file
  * @param {*} path The file path to save
  * @param {*} content The content of the file
+ * @param {*} refresh Should we refresh the file list (optional, default is false)
  */
-function saveTextFile(path, content) {
+function saveTextFile(path, content, refresh=false) {
 	Api.apiRequest('files', 'update-text-file', {'path': path, 'content': content}, r => {
 		// Check for errors
 		if (typeof r.error !== 'undefined') {
@@ -329,7 +335,9 @@ function saveTextFile(path, content) {
 		// Display success message
 		notif('{JS:L:FILE_SAVED}');
 		// Refresh list
-		displayPrivateFileList('content', getParentDirectory(path));
+		if (refresh) {
+			displayPrivateFileList('content', getParentDirectory(path));
+		}
 	});
 }
 
@@ -386,6 +394,30 @@ function humanFileSize(bytes, si=false, dp=1) {
 		++u;
 	} while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
 	return bytes.toFixed(dp) + ' ' + units[u];
+}
+
+/**
+ * Prepare the file uploader
+ * @param {*} container The id of the element that will contains the uploader
+ */
+function appendFileUpload(container) {
+	// Enable file upload
+	createFileUpload(container, 'user_file', '{JS:L:UPLOAD}', '{JS:S:DIR}api/files/upload', (xhr, status) => {
+		// Parse JSON
+		r = JSON.parse(xhr.responseText);
+		// Check for status error
+		if (status !== "success") {
+			notifError("{JS:L:NETWORK_ERROR}", '{JS:L:ERROR}');
+			return;
+		}
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Display message
+		notif('{JS:L:FILE_UPLOADED}');
+	});
 }
 
 // Init some elements

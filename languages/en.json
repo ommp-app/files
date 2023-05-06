@@ -109,5 +109,9 @@
 	"yes": "Yes",
 	"no": "No",
 	"write_error": "Error while writing file",
-	"file_saved": "File saved"
+	"file_saved": "File saved",
+	"upload": "Upload",
+	"file_uploaded": "File uploaded",
+	"network_error": "Network error",
+	"quota_exceeded": "This operation makes you exceed the authorized storage quota! Try deleting files to free up space."
 }
