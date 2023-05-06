@@ -125,7 +125,7 @@ function files_process_api($action, $data) {
 	 */
 	function prepare_path($path) {
 		global $user_dir;
-		$path = str_replace("\\", "/", $path);
+		$path = str_replace("\\", "/", urldecode($path));
 		$path = str_replace("../", "", $path);
 		$path = str_replace("/..", "", $path);
 		while (strpos($path, "//") !== FALSE) {
@@ -202,7 +202,7 @@ function files_process_api($action, $data) {
 		}
 
 		// Prepare path
-		$short_path =prepare_path($data['path']);
+		$short_path = prepare_path($data['path']);
 		$path = $user_dir . $short_path;
 
 		// Write file

@@ -102,7 +102,7 @@ function renderLayoutList(container, path, files) {
 	var content = '<table class="w-100 mt-3 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th><th class="pb-2 w-30 hidden-mobile">{JS:L:LAST_MODIFICATION}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
-		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" onclick="location.href=\'#' + path + '/' + file + '\';"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) +
+		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) +
 		'" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" />' + escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile">' + (is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime)) +
 		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
 	}
@@ -190,6 +190,9 @@ function filterObject(obj, callback) {
  * @param {*} path The path of the file
  */
 function previewPrivateFile(file, path) {
+
+	// Get the parent directory
+	let parent = getParentDirectory(path), fileName = getFileName(path);
 	
 	// If file is an image
 	if (file.mime.startsWith('image/')) {
@@ -202,9 +205,6 @@ function previewPrivateFile(file, path) {
 		$('#image-loader').show();
 		$('#image-view').attr('src', '{JS:S:DIR}private-file' + path + '?v=' + file.modification).on('load', () => {$('#image-loader').hide();});
 		$('#image-viewer').show();
-
-		// Get the parent directory
-		let parent = getParentDirectory(path), fileName = getFileName(path);
 
 		// Set the next and previous buttons
 		Api.apiRequest('files', 'list-files', {'path': parent}, r => {
@@ -263,6 +263,17 @@ function previewPrivateFile(file, path) {
 
 	}
 
+	// If mime type is not supported
+	else {
+
+		// We just open it in a new window
+		window.open('{JS:S:DIR}private-file' + path + '?v=' + file.modification, '_blank').focus();
+
+		// And go back to file list
+		location.href = '#' + parent;
+
+	}
+
 }
 
 /**
@@ -318,7 +329,7 @@ function saveTextFile(path, content) {
  * @return The parent directory
  */
 function getParentDirectory(path) {
-	path = path.replace('\\', '/');
+	path = path.replaceAll('\\', '/');
 	if (path.endsWith('/')) {
 		path = path.substr(0, path.length - 1);
 	}
@@ -331,7 +342,7 @@ function getParentDirectory(path) {
  * @return The file name
  */
 function getFileName(path) {
-	path = path.replace('\\', '/');
+	path = path.replaceAll('\\', '/');
 	if (path.endsWith('/')) {
 		path = path.substr(0, path.length - 1);
 	}
