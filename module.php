@@ -285,6 +285,11 @@ function files_process_api($action, $data) {
 		$short_path = prepare_path($data['path']) . "/" . $_FILES['user_file']['name'];
 		$path = $user_dir . $short_path;
 
+		// Check if file exists
+		if (file_exists($path)) {
+			return ["error" => $user->module_lang->get("file_exists")];
+		}
+
 		// Check the quota
 		$future_quota = check_quota($path, $_FILES['user_file']['size'], $usage);
 		if (!$future_quota[0]) {
