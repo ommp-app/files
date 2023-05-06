@@ -111,7 +111,7 @@ function renderLayoutList(container, path, files) {
 	$('#' + container).append(content + '</table>');
 	// Add the file uploader
 	$('#' + container).append('<div id="file-upload" class="mt-3 mb-4"></div>');
-	appendFileUpload('file-upload');
+	appendFileUpload('file-upload', path);
 	// Reset the scroll
 	window.scrollTo({
 		left: scroll[0],
@@ -399,15 +399,26 @@ function humanFileSize(bytes, si=false, dp=1) {
 /**
  * Prepare the file uploader
  * @param {*} container The id of the element that will contains the uploader
+ * @param {*} path The current path
  */
-function appendFileUpload(container) {
+function appendFileUpload(container, path) {
 	// Enable file upload
 	createFileUpload(container, 'user_file', '{JS:L:UPLOAD}', '{JS:S:DIR}api/files/upload', (xhr, status) => {
+		// Check for file too large error
+		if (xhr.status == 413) {
+			notifError('{JS:L:FILE_TOO_LARGE}', '{JS:L:ERROR}');
+			return;
+		}
 		// Parse JSON
-		r = JSON.parse(xhr.responseText);
+		try {
+			r = JSON.parse(xhr.responseText);
+		} catch (e) {
+			notifError('{JS:L:UNKNOWN_ERROR}<br /><code style="color:white;">' + e + '</code>', '{JS:L:ERROR}');
+			return;
+		}
 		// Check for status error
 		if (status !== "success") {
-			notifError("{JS:L:NETWORK_ERROR}", '{JS:L:ERROR}');
+			notifError('{JS:L:NETWORK_ERROR}', '{JS:L:ERROR}');
 			return;
 		}
 		// Check for errors
@@ -417,7 +428,7 @@ function appendFileUpload(container) {
 		}
 		// Display message
 		notif('{JS:L:FILE_UPLOADED}');
-	});
+	}, {'path': path});
 }
 
 // Init some elements

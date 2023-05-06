@@ -269,6 +269,43 @@ function files_process_api($action, $data) {
 			"bytes_write" => $result
 		];
 
+	} else if ($action == "upload") {
+
+		// Check the parameters
+		if (!check_keys($_FILES, ["user_file"]) || !check_keys($data, ["path"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare path
+		$short_path = prepare_path($data['path']) . "/" . $_FILES['user_file']['name'];
+		$path = $user_dir . $short_path;
+
+		// Check the quota
+		$future_quota = check_quota($path, $_FILES['user_file']['size'], $usage);
+		if (!$future_quota[0]) {
+			return ["error" => $user->module_lang->get("quota_exceeded")];
+		}
+
+		// Move file
+		$result = move_uploaded_file($_FILES['user_file']['tmp_name'], $path);
+		if ($result === FALSE) {
+			return ["error" => $user->module_lang->get("cannot_move_temp")];
+		}
+
+		// Save the new quota
+		$sql->exec("UPDATE {$db_prefix}files_quotas SET quota = quota + $future_quota[1] WHERE user_id = " . $sql->quote($user->id));
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"clean_path" => $short_path
+		];
+
 	}
 
     return FALSE;

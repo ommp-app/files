@@ -113,5 +113,8 @@
 	"upload": "Envoyer",
 	"file_uploaded": "Fichier envoyé",
 	"network_error": "Erreur réseau",
-	"quota_exceeded": "Cette opération vous fait dépasser le quota de stockage autorisé ! Essayez de supprimer des fichiers pour libérer de l'espace."
+	"quota_exceeded": "Cette opération vous fait dépasser le quota de stockage autorisé ! Essayez de supprimer des fichiers pour libérer de l'espace.",
+	"cannot_move_temp": "Impossible de déplacer le fichier temporaire, veuillez réessayer",
+	"unknown_error": "Erreur inconnue",
+	"file_too_large": "Le fichier dépasse la taille maximale autorisée pour l'envoi de fichiers"
 }

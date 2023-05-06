@@ -113,5 +113,8 @@
 	"upload": "Upload",
 	"file_uploaded": "File uploaded",
 	"network_error": "Network error",
-	"quota_exceeded": "This operation makes you exceed the authorized storage quota! Try deleting files to free up space."
+	"quota_exceeded": "This operation makes you exceed the authorized storage quota! Try deleting files to free up space.",
+	"cannot_move_temp": "Unable to move temporary file, please try again",
+	"unknown_error": "Unknown error",
+	"file_too_large": "The file exceeds the maximum size allowed for sending files"
 }
