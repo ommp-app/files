@@ -428,6 +428,8 @@ function appendFileUpload(container, path) {
 		}
 		// Display message
 		notif('{JS:L:FILE_UPLOADED}');
+		// Refresh files list
+		displayPrivateFileList('content', path);
 	}, {'path': path});
 }
 
