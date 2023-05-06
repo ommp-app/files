@@ -61,10 +61,19 @@
     max-height: 95%;
     min-height: 20%;
     padding: 1em;
+    border-radius: 0.5em;
+    border: none;
 }
 
 #text-controls {
     margin-bottom: 1%;
+}
+
+#text-controls .btn {
+    border: none;
+    padding: 0 1em 0 1em!important;
+    opacity: 0.7;
+    font-family: sans-serif;
 }
 
 @media (max-width: 767px) {
