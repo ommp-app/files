@@ -150,23 +150,18 @@ function files_process_api($action, $data) {
 	 * 		The size in bytes of the file
 	 * @param int $usage
 	 * 		Current usage for the user
+	 * @param int $quota
+	 * 		The quota allowed to the user (0 for unlimited)
 	 * @return array
 	 * 		[TRUE if the operation is valid or FALSE if the operation cannot be done due to the quota, the usage difference in bytes]
 	 */
-	function check_quota($file, $size, $usage) {
-		global $user, $config;
-		// Get the quota
-		$allowed_quota = intval($config->get("files.quota"));
+	function check_quota($file, $size, $usage, $quota) {
 		// Get the current size of the file
 		$current_file_size = file_exists($file) ? filesize($file) : 0;
 		// Compute the usage difference cause by this operation
 		$usage_delta = $size - $current_file_size;
-		// If quota is disabled or if user can bypass it, return TRUE
-		if ($allowed_quota == 0 || $user->has_right("files.bypass_quota")) {
-			return [TRUE, $usage_delta];
-		}
 		// Check if the write operation will not overcome the quota
-		return [$allowed_quota >= $usage + $usage_delta, $usage_delta];
+		return [$quota == 0 || $quota >= $usage + $usage_delta, $usage_delta];
 	}
 
 	// Check if user directory exists
@@ -176,7 +171,8 @@ function files_process_api($action, $data) {
 	}
 
 	// Get user usage
-	$usage = dbGetFirstLineSimple("{$db_prefix}files_quotas", "user_id = " . $sql->quote($user->id), "quota", TRUE);
+	$usage = intval(dbGetFirstLineSimple("{$db_prefix}files_quotas", "user_id = " . $sql->quote($user->id), "quota", TRUE));
+	$max_quota = $user->has_right("files.bypass_quota") ? 0 : intval($config->get("files.quota"));
 
 	// Create quota if needed
 	if ($usage === FALSE) {
@@ -224,7 +220,9 @@ function files_process_api($action, $data) {
 		return [
 			"ok" => TRUE,
 			"files" => $content,
-			"clean_path" => $short_path
+			"clean_path" => $short_path,
+			"usage" => $usage,
+			"quota" => $max_quota
 		];
 
 	} else if ($action == "update-text-file") {
@@ -244,7 +242,7 @@ function files_process_api($action, $data) {
 		$path = $user_dir . $short_path;
 
 		// Check the quota
-		$future_quota = check_quota($path, strlen($data['content']), $usage);
+		$future_quota = check_quota($path, strlen($data['content']), $usage, $max_quota);
 		if (!$future_quota[0]) {
 			return ["error" => $user->module_lang->get("quota_exceeded")];
 		}
@@ -291,7 +289,7 @@ function files_process_api($action, $data) {
 		}
 
 		// Check the quota
-		$future_quota = check_quota($path, $_FILES['user_file']['size'], $usage);
+		$future_quota = check_quota($path, $_FILES['user_file']['size'], $usage, $max_quota);
 		if (!$future_quota[0]) {
 			return ["error" => $user->module_lang->get("quota_exceeded")];
 		}

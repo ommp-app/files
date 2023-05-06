@@ -117,5 +117,7 @@
 	"cannot_move_temp": "Impossible de déplacer le fichier temporaire, veuillez réessayer",
 	"unknown_error": "Erreur inconnue",
 	"file_too_large": "Le fichier dépasse la taille maximale autorisée pour l'envoi de fichiers",
-	"file_exists": "Ce fichier existe déjà"
+	"file_exists": "Ce fichier existe déjà",
+	"usage": "Utilisation : ",
+	"max_upload": "Envoi maximum : "
 }

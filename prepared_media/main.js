@@ -32,7 +32,7 @@ function displayPrivateFileList(container, path, layout='list') {
 		}
 		// Display
 		if (layout == 'list') {
-			renderLayoutList(container, r.clean_path, r.files);
+			renderLayoutList(container, r.clean_path, r.files, r.usage, r.quota);
 		} else if (layout == 'grid') {
 			renderLayoutGrid(container, r.clean_path, r.files);
 		} else {
@@ -93,8 +93,10 @@ function getInlineButton(content, callback, className='') {
  * @param {*} container The id of the parent element
  * @param {*} path The current path
  * @param {*} files The list of the files as returned by the API
+ * @param {*} usage The current usage of the user
+ * @param {*} quota The maximum quota allowed for the user
  */
-function renderLayoutList(container, path, files) {
+function renderLayoutList(container, path, files, usage, quota) {
 	// Save the scroll to restore it in case of a refresh
 	var scroll = [window.scrollX, window.scrollY];
 	// Display current dir
@@ -104,20 +106,34 @@ function renderLayoutList(container, path, files) {
 	var content = '<table class="w-100 mt-3 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th><th class="pb-2 w-30 hidden-mobile">{JS:L:LAST_MODIFICATION}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
+		var type = is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime);
 		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) +
-		'" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" />' + escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile">' + (is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime)) +
+		'" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" />' + escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type +
 		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
 	// Add the file uploader
 	$('#' + container).append('<div id="file-upload" class="mt-3 mb-4"></div>');
 	appendFileUpload('file-upload', path);
+	// Add the quota informations
+	displayQuota(container, usage, quota);
 	// Reset the scroll
 	window.scrollTo({
 		left: scroll[0],
 		top: scroll[1],
 		behavior: 'instant'
 	});
+}
+
+/**
+ * Display the storage usage of the user
+ * @param {*} container The id of the element where we will append the usage
+ * @param {*} usage The current disk usage of the user in bytes
+ * @param {*} quota The maximum usage allowed for the user
+ */
+function displayQuota(container, usage, quota) {
+	$('#' + container).append('<span class="' + (quota == 0 || usage <= quota ? 'lighter' : 'error') + '">{JS:L:USAGE}' + humanFileSize(usage) + ' / ' + (quota == 0 ? '&infin;' : humanFileSize(quota)) +
+	(quota != 0 ? ('<span class="ms-2">(' + Math.floor(usage / quota * 100) + '%)</span>') : '') + ' &nbsp;&ndash;&nbsp; {JS:L:MAX_UPLOAD}' + humanFileSize({S:MAX_UPLOAD}) + '</span>');
 }
 
 /**
@@ -161,16 +177,6 @@ function getType(mime) {
 		return '{JS:L:UNKNOWN}';
 	}
 	return mimeTypes[mime];
-}
-
-/**
- * Format a size in bytes to a human readable
- * 
- * @param {*} size The size in bytes
- * @return The human readable format for the size
- */
-function formatSize(size) {
-
 }
 
 /**
