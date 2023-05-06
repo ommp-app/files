@@ -120,6 +120,10 @@ function getIcon(mime) {
 	if (mime == 'dir') {
 		return '{JS:S:DIR}media/files/icons/folder.svg';
 	}
+	// Special types
+	if (mime == 'application/json') {
+		return '{JS:S:DIR}media/files/icons/text.svg';
+	}
 	// Get first part
 	if (mime.includes('/')) {
 		var type = mime.split('/')[0];
@@ -234,7 +238,7 @@ function previewPrivateFile(file, path) {
 	}
 
 	// If file is a text
-	else if (file.mime.startsWith('text/')) {
+	else if (file.mime.startsWith('text/') || file.mime == 'application/json') {
 
 		// Close other previews
 		closeImagePreview();
