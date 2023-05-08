@@ -309,6 +309,58 @@ function files_process_api($action, $data) {
 			"clean_path" => $short_path
 		];
 
+	} else if ($action == "rename") {
+
+		// Check the parameters
+		if (!check_keys($data, ["path", "old_name", "new_name"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare the path
+		$short_path_old = prepare_path($data['path'] . "/" . $data['old_name']);
+		$path_old = $user_dir . $short_path_old;
+		$short_path_new = prepare_path($data['path'] . "/" . $data['new_name']);
+		$path_new = $user_dir . $short_path_new;
+
+		// Check if old file exists
+		if (!file_exists($path_old)) {
+			return ["error" => $user->module_lang->get("file_not_found")];
+		}
+
+		// Check if new file exists
+		if (file_exists($path_new)) {
+			return ["error" => $user->module_lang->get("file_exists")];
+		}
+
+		// Check if we need to create a directory for renaming
+		$target_parent = dirname($path_new);
+		if (!is_dir($target_parent)) {
+			$create = @mkdir($target_parent, 0777, TRUE);
+			if (!$create) {
+				return ["error" => $user->module_lang->get("cannot_create_dir")];
+			}
+		}
+
+		// Move the file
+		$result = @rename($path_old, $path_new);
+
+		// Search for errors
+		if ($result === FALSE) {
+			return ["error" => $user->module_lang->get("cannot_rename_file")];
+		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"clean_path_old" => $short_path_old,
+			"clean_path_new" => $short_path_new
+		];
+
 	}
 
     return FALSE;

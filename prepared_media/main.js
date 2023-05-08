@@ -103,13 +103,14 @@ function renderLayoutList(container, path, files, usage, quota) {
 	$('#' + container).html('');
 	displayCurrentDir(container, path);
 	// Display the files
-	var content = '<table class="w-100 mt-3 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th><th class="pb-2 w-30 hidden-mobile">{JS:L:LAST_MODIFICATION}</th></tr>';
+	var content = '<table class="w-100 mt-3 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
 		var type = is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime);
-		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) +
+		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter" title="{JS:L:EDIT}" onclick="editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
+		'<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) +
 		'" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" />' + escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type +
-		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
+		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
 	// Add the file uploader
@@ -122,6 +123,44 @@ function renderLayoutList(container, path, files, usage, quota) {
 		left: scroll[0],
 		top: scroll[1],
 		behavior: 'instant'
+	});
+}
+
+/**
+ * Display the popup to edit a file (rename, move, delete, copy)
+ * @param {*} file The file path
+ */
+function editFile(file) {
+	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapeHtmlProperty(file, true) + '\');">{JS:L:RENAME}</button><button class="btn btn-outline-dark ms-2 mt-2">{JS:L:MOVE}</button><br />' +
+		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:COPY}</button><button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button>', true);
+}
+
+/**
+ * Displays the popup to rename a file
+ * @param {*} file The file path to rename
+ */
+function renameFile(file) {
+	var escapedFileName = escapeHtmlProperty(getFileName(file));
+	var renameFunc = 'doRenameFile(\'' + escapeHtmlProperty(getParentDirectory(file), true) + '\', \'' + escapedFileName + '\',$(\'#file-new-name\').val());';
+	popup('{JS:L:RENAME}', '<input type="text" id="file-new-name" style="width:100%;display:inline-block;" class="form-control" value="' + escapedFileName +'" onkeyup="if(event.key===\'Enter\'){' + renameFunc + '}">' +
+		'<div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + renameFunc + '">{JS:L:RENAME}</div>')
+}
+
+/**
+ * Call the API to rename a file
+ * @param {*} file 
+ */
+function doRenameFile(path, oldName, newName) {
+	Api.apiRequest('files', 'rename', {'path': path, 'old_name': oldName, 'new_name': newName}, r => {
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Refresh file list
+		displayPrivateFileList('content', path);
+		// Close the popup
+		closePopup();
 	});
 }
 

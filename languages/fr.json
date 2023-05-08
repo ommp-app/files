@@ -119,5 +119,13 @@
 	"file_too_large": "Le fichier dépasse la taille maximale autorisée pour l'envoi de fichiers",
 	"file_exists": "Ce fichier existe déjà",
 	"usage": "Utilisation : ",
-	"max_upload": "Envoi maximum : "
+	"max_upload": "Envoi maximum : ",
+	"edit": "Modifier",
+	"rename": "Renommer",
+	"move": "Déplacer",
+	"copy": "Copier",
+	"delete": "Supprimer",
+	"file_not_found": "Ce fichier n'existe pas",
+	"cannot_create_dir": "Impossible de créer le répertoire",
+	"cannot_rename_file": "Impossible de renommer le fichier/dossier"
 }
