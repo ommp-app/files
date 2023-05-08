@@ -127,5 +127,9 @@
 	"delete": "Delete",
 	"file_not_found": "This file does not exists",
 	"cannot_create_dir": "Cannot create directory",
-	"cannot_rename_file": "Unable to rename file/directory"
+	"cannot_rename_file": "Unable to rename file/directory",
+	"empty_directory": "This directory is empty",
+	"move_to": "Move to...",
+	"file_moved": "File/directory moved",
+	"cannot_move_file": "Unable to move file/directory"
 }

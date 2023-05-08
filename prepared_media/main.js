@@ -30,6 +30,9 @@ function displayPrivateFileList(container, path, layout='list') {
 			notifError(r.error, '{JS:L:ERROR}');
 			return;
 		}
+		// Close the viewers if needed
+		closeImagePreview();
+		closeTextEditor();
 		// Display
 		if (layout == 'list') {
 			renderLayoutList(container, r.clean_path, r.files, r.usage, r.quota);
@@ -59,9 +62,6 @@ function displayCurrentDir(container, path) {
 		$('#current-path').append(getInlineButton(dir || '{JS:L:MY_FILES}', () => {location.href = '#' + path;}));
 		$('#current-path').append('/');
 	});
-	// Close the viewers if needed
-	closeImagePreview();
-	closeTextEditor();
 }
 
 /**
@@ -113,6 +113,10 @@ function renderLayoutList(container, path, files, usage, quota) {
 		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
+	// Check if empty
+	if (Object.keys(files).length == 0) {
+		$('#' + container).append('<i class="lighter">{JS:L:EMPTY_DIRECTORY}</i>');
+	}
 	// Add the file uploader
 	$('#' + container).append('<div id="file-upload" class="mt-3 mb-4"></div>');
 	appendFileUpload('file-upload', path);
@@ -131,8 +135,35 @@ function renderLayoutList(container, path, files, usage, quota) {
  * @param {*} file The file path
  */
 function editFile(file) {
-	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapeHtmlProperty(file, true) + '\');">{JS:L:RENAME}</button><button class="btn btn-outline-dark ms-2 mt-2">{JS:L:MOVE}</button><br />' +
-		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:COPY}</button><button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button>', true);
+	var escapedFileName = escapeHtmlProperty(file, true);
+	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button><br />' +
+		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:COPY}</button>' +
+		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button>', true);
+}
+
+/**
+ * Display the popup to move a file
+ * @param {*} file The file to move
+ */
+function moveFile(file) {
+	directorySelector('{JS:L:MOVE_TO}', getParentDirectory(file), '{JS:L:MOVE}', newPath => {
+		let parent = getParentDirectory(file);
+		// Call the Api to move the file
+		Api.apiRequest('files', 'move', {'file': file, 'new_path': newPath}, r => {
+			// Check for errors
+			if (typeof r.error !== 'undefined') {
+				notifError(r.error, '{JS:L:ERROR}');
+				return;
+			}
+			// Refresh file list
+			displayPrivateFileList('content', parent);
+			// Close the popup
+			closePopup();
+			// Display confirmation
+			notif('{JS:L:FILE_MOVED}');
+		});
+	});
 }
 
 /**
@@ -161,6 +192,55 @@ function doRenameFile(path, oldName, newName) {
 		displayPrivateFileList('content', path);
 		// Close the popup
 		closePopup();
+	});
+}
+
+/**
+ * Display the directory selector
+ * @param {*} title The selector title
+ * @param {*} path The current path
+ * @param {*} button The validation button text
+ * @param {*} callback The function called on validation (the selected path will be passed as parameter)
+ */
+function directorySelector(title, path, button, callback) {
+	// Get the file list
+	Api.apiRequest('files', 'list-files', {'path': path}, r => {
+
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+
+		// Create the popup
+		popup(title, '<div id="directory-selector"></div><div id="sub-dirs"></div><button class="btn btn-outline-dark ms-2 mt-2" id="popup-button">' + escapeHtml(button) + '</button>');
+
+		// Prepare the button
+		$('#popup-button').on('click', () => callback(r.clean_path));
+
+		// Prepare the path
+		let buildingPath = '';
+		$('#directory-selector').append('&gt;')
+		r.clean_path.split('/').forEach(dir => {
+			if (dir) {
+				buildingPath += '/' + dir;
+			}
+			let path = buildingPath;
+			$('#directory-selector').append(getInlineButton(dir || '{JS:L:MY_FILES}', () => {directorySelector(title, path, button, callback);}));
+			$('#directory-selector').append('/');
+		});
+
+		// Filter only the directories
+		for (const [file, attributes] of Object.entries(r.files)) {
+			if (attributes.type == 'dir') {
+				$('#sub-dirs').append(getInlineButton(file, () => {directorySelector(title, r.clean_path + '/' + file, button, callback);}, 'mb-2'));
+			}
+		}
+		// Check if empty
+		if ($('#sub-dirs').html() == '') {
+			$('#sub-dirs').html('<i class="lighter">{JS:L:EMPTY_DIRECTORY}</i>')
+		}
+
 	});
 }
 

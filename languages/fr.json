@@ -127,5 +127,9 @@
 	"delete": "Supprimer",
 	"file_not_found": "Ce fichier n'existe pas",
 	"cannot_create_dir": "Impossible de créer le répertoire",
-	"cannot_rename_file": "Impossible de renommer le fichier/dossier"
+	"cannot_rename_file": "Impossible de renommer le fichier/dossier",
+	"empty_directory": "Ce répertoire est vide",
+	"move_to": "Déplacer vers...",
+	"file_moved": "Fichier/dossier déplacé",
+	"cannot_move_file": "Impossible de déplacer le fichier/dossier"
 }

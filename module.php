@@ -361,6 +361,49 @@ function files_process_api($action, $data) {
 			"clean_path_new" => $short_path_new
 		];
 
+	} else if ($action == "move") {
+
+		// Check the parameters
+		if (!check_keys($data, ["file", "new_path"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare the path
+		$short_path_old = prepare_path($data['file']);
+		$path_old = $user_dir . $short_path_old;
+		$short_path_new = prepare_path($data['new_path'] . "/" . basename($data['file']));
+		$path_new = $user_dir . $short_path_new;
+
+		// Check if old file exists
+		if (!file_exists($path_old)) {
+			return ["error" => $user->module_lang->get("file_not_found")];
+		}
+
+		// Check if new file exists
+		if (file_exists($path_new)) {
+			return ["error" => $user->module_lang->get("file_exists")];
+		}
+
+		// Move the file
+		$result = @rename($path_old, $path_new);
+
+		// Search for errors
+		if ($result === FALSE) {
+			return ["error" => $user->module_lang->get("cannot_move_file")];
+		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"clean_path_old" => $short_path_old,
+			"clean_path_new" => $short_path_new
+		];
+
 	}
 
     return FALSE;
