@@ -131,5 +131,9 @@
 	"empty_directory": "Ce répertoire est vide",
 	"move_to": "Déplacer vers...",
 	"file_moved": "Fichier/dossier déplacé",
-	"cannot_move_file": "Impossible de déplacer le fichier/dossier"
+	"cannot_move_file": "Impossible de déplacer le fichier/dossier",
+	"copy_to": "Copier vers...",
+	"file_copied": "Fichier/dossier copié",
+	"cannot_copy_dir_in_itself": "Vous ne pouvez pas copier un répertoire dans lui-même",
+	"cannot_copy_file": "Impossible de copier le fichier/dossier"
 }

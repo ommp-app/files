@@ -131,5 +131,9 @@
 	"empty_directory": "This directory is empty",
 	"move_to": "Move to...",
 	"file_moved": "File/directory moved",
-	"cannot_move_file": "Unable to move file/directory"
+	"cannot_move_file": "Unable to move file/directory",
+	"copy_to": "Copy to...",
+	"file_copied": "File/directory copied",
+	"cannot_copy_dir_in_itself": "You cannot copy a directory inside itself",
+	"cannot_copy_file": "Unable to copy file/directory"
 }

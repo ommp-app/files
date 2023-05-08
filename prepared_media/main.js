@@ -138,7 +138,7 @@ function editFile(file) {
 	var escapedFileName = escapeHtmlProperty(file, true);
 	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button><br />' +
-		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:COPY}</button>' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="copyFile(\'' + escapedFileName + '\');">{JS:L:COPY}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button>', true);
 }
 
@@ -147,7 +147,7 @@ function editFile(file) {
  * @param {*} file The file to move
  */
 function moveFile(file) {
-	directorySelector('{JS:L:MOVE_TO}', getParentDirectory(file), '{JS:L:MOVE}', newPath => {
+	directorySelector('{JS:L:MOVE_TO}', getParentDirectory(file), '{JS:L:MOVE}', (newPath, _) => {
 		let parent = getParentDirectory(file);
 		// Call the Api to move the file
 		Api.apiRequest('files', 'move', {'file': file, 'new_path': newPath}, r => {
@@ -167,13 +167,38 @@ function moveFile(file) {
 }
 
 /**
+ * Display the popup to copy a file
+ * @param {*} file The file to copy
+ */
+function copyFile(file) {
+	// Display the directory and name selector
+	let parent = getParentDirectory(file);
+	directorySelector('{JS:L:COPY_TO}', parent, '{JS:L:COPY}', (newPath, newName) => {
+		// Call the Api to copy dir
+		Api.apiRequest('files', 'copy', {'file': file, 'new_path': newPath, 'new_name': newName}, r => {
+			// Check for errors
+			if (typeof r.error !== 'undefined') {
+				notifError(r.error, '{JS:L:ERROR}');
+				return;
+			}
+			// Refresh file list
+			displayPrivateFileList('content', parent);
+			// Close the popup
+			closePopup();
+			// Display confirmation
+			notif('{JS:L:FILE_COPIED}');
+		});
+	}, getFileName(file));
+}
+
+/**
  * Displays the popup to rename a file
  * @param {*} file The file path to rename
  */
 function renameFile(file) {
 	var escapedFileName = escapeHtmlProperty(getFileName(file));
 	var renameFunc = 'doRenameFile(\'' + escapeHtmlProperty(getParentDirectory(file), true) + '\', \'' + escapedFileName + '\',$(\'#file-new-name\').val());';
-	popup('{JS:L:RENAME}', '<input type="text" id="file-new-name" style="width:100%;display:inline-block;" class="form-control" value="' + escapedFileName +'" onkeyup="if(event.key===\'Enter\'){' + renameFunc + '}">' +
+	popup('{JS:L:RENAME}', '<input type="text" id="file-new-name" style="width:100%;display:inline-block;" class="form-control" value="' + escapedFileName +'" onkeyup="if(event.key===\'Enter\'){' + renameFunc + '}" />' +
 		'<div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + renameFunc + '">{JS:L:RENAME}</div>')
 }
 
@@ -201,8 +226,9 @@ function doRenameFile(path, oldName, newName) {
  * @param {*} path The current path
  * @param {*} button The validation button text
  * @param {*} callback The function called on validation (the selected path will be passed as parameter)
+ * @param {*} input The default input value (optional, default is false to hide input)
  */
-function directorySelector(title, path, button, callback) {
+function directorySelector(title, path, button, callback, input=false) {
 	// Get the file list
 	Api.apiRequest('files', 'list-files', {'path': path}, r => {
 
@@ -213,10 +239,12 @@ function directorySelector(title, path, button, callback) {
 		}
 
 		// Create the popup
-		popup(title, '<div id="directory-selector"></div><div id="sub-dirs"></div><button class="btn btn-outline-dark ms-2 mt-2" id="popup-button">' + escapeHtml(button) + '</button>');
+		popup(title, '<div id="directory-selector"></div><div id="sub-dirs"></div>' +
+			(input !== false ? '<input type="text" id="directory-selector-input" style="width:100%;display:inline-block;" class="form-control mt-2" value="' + escapeHtmlProperty(input) +'" onkeyup="if(event.key===\'Enter\'){$(\'#popup-button\').trigger(\'click\');}">' : '') +
+			'<button class="btn btn-outline-dark ms-2 mt-2" id="popup-button">' + escapeHtml(button) + '</button>');
 
 		// Prepare the button
-		$('#popup-button').on('click', () => callback(r.clean_path));
+		$('#popup-button').on('click', () => callback(r.clean_path, $('#directory-selector-input').val()));
 
 		// Prepare the path
 		let buildingPath = '';
@@ -226,14 +254,14 @@ function directorySelector(title, path, button, callback) {
 				buildingPath += '/' + dir;
 			}
 			let path = buildingPath;
-			$('#directory-selector').append(getInlineButton(dir || '{JS:L:MY_FILES}', () => {directorySelector(title, path, button, callback);}));
+			$('#directory-selector').append(getInlineButton(dir || '{JS:L:MY_FILES}', () => {directorySelector(title, path, button, callback, input === false ? false : $('#directory-selector-input').val());}));
 			$('#directory-selector').append('/');
 		});
 
 		// Filter only the directories
 		for (const [file, attributes] of Object.entries(r.files)) {
 			if (attributes.type == 'dir') {
-				$('#sub-dirs').append(getInlineButton(file, () => {directorySelector(title, r.clean_path + '/' + file, button, callback);}, 'mb-2'));
+				$('#sub-dirs').append(getInlineButton(file, () => {directorySelector(title, r.clean_path + '/' + file, button, callback, input === false ? false : $('#directory-selector-input').val());}, 'mb-2'));
 			}
 		}
 		// Check if empty

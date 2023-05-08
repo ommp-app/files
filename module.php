@@ -157,7 +157,7 @@ function files_process_api($action, $data) {
 	 */
 	function check_quota($file, $size, $usage, $quota) {
 		// Get the current size of the file
-		$current_file_size = file_exists($file) ? filesize($file) : 0;
+		$current_file_size = file_exists($file) ? (is_dir($file) ? folder_size($file) : filesize($file)) : 0;
 		// Compute the usage difference cause by this operation
 		$usage_delta = $size - $current_file_size;
 		// Check if the write operation will not overcome the quota
@@ -396,6 +396,73 @@ function files_process_api($action, $data) {
 		if ($result === FALSE) {
 			return ["error" => $user->module_lang->get("cannot_move_file")];
 		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"clean_path_old" => $short_path_old,
+			"clean_path_new" => $short_path_new
+		];
+
+	} else if ($action == "copy") {
+
+		// Check the parameters
+		if (!check_keys($data, ["file", "new_path", "new_name"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare the path
+		$short_path_old = prepare_path($data['file']);
+		$path_old = $user_dir . $short_path_old;
+		$short_path_new = prepare_path($data['new_path'] . "/" . $data['new_name']);
+		$path_new = $user_dir . $short_path_new;
+
+		// Check if old file exists
+		if (!file_exists($path_old)) {
+			return ["error" => $user->module_lang->get("file_not_found")];
+		}
+
+		// Check if new file exists
+		if (file_exists($path_new)) {
+			return ["error" => $user->module_lang->get("file_exists")];
+		}
+
+		// Check if we try to copy a directory inside itself
+		$is_dir = is_dir($path_old);
+		if ($is_dir && (substr($short_path_new . '/', 0, strlen($short_path_old . '/')) == ($short_path_old . '/'))) {
+			return ["error" => $user->module_lang->get("cannot_copy_dir_in_itself")];
+		}
+
+		// Check quota
+		$future_quota = check_quota($path_new, $is_dir ? folder_size($path_old) : filesize($path_old), $usage, $max_quota);
+		if (!$future_quota[0]) {
+			return ["error" => $user->module_lang->get("quota_exceeded")];
+		}
+
+		// Check if we need to create a directory for renaming
+		$target_parent = dirname($path_new);
+		if (!is_dir($target_parent)) {
+			$create = @mkdir($target_parent, 0777, TRUE);
+			if (!$create) {
+				return ["error" => $user->module_lang->get("cannot_create_dir")];
+			}
+		}
+
+		// Copy the file / dir
+		$result = $is_dir ? dir_copy($path_old, $path_new) : @copy($path_old, $path_new);
+
+		// Search for errors
+		if ($result === FALSE) {
+			return ["error" => $user->module_lang->get("cannot_copy_file")];
+		}
+
+		// Save the new quota
+		$sql->exec("UPDATE {$db_prefix}files_quotas SET quota = quota + $future_quota[1] WHERE user_id = " . $sql->quote($user->id));
 
 		// Return success
 		return [
