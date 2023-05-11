@@ -2,7 +2,7 @@
 let lastFileContent = '', lastFile = '';
 
 // The current layout type
-let layoutType = 'list';
+let layoutType = localStorage.getItem('files.layout') || 'list';
 
 // Fix negative modulo (thanks JavaScript)
 Number.prototype.mod = function(n) {
@@ -39,14 +39,26 @@ function displayPrivateFileList(container, path, layout='list', reScroll=true) {
 		closeTextEditor();
 		// Save the scroll to restore it in case of a refresh
 		var scroll = [window.scrollX, window.scrollY];
+		// Display current dir
+		$('#' + container).html('');
+		displayCurrentDir(container, r.clean_path);
 		// Display
 		if (layout == 'list') {
-			renderLayoutList(container, r.clean_path, r.files, r.usage, r.quota);
+			renderLayoutList(container, r.clean_path, r.files);
 		} else if (layout == 'grid') {
 			renderLayoutGrid(container, r.clean_path, r.files);
 		} else {
 			notifError('{JS:L:UNKNOWN_LAYOUT}', '{JS:L:ERROR}');
 		}
+		// Check if empty
+		if (Object.keys(r.files).length == 0) {
+			$('#' + container).append('<i class="lighter">{JS:L:EMPTY_DIRECTORY}</i>');
+		}
+		// Add the file uploader
+		$('#' + container).append('<div id="file-upload" class="mt-3 mb-4"></div>');
+		appendFileUpload('file-upload', r.clean_path);
+		// Add the quota informations
+		displayQuota(container, r.usage, r.quota);
 		// Reset scroll if needed
 		window.scrollTo({
 			left: scroll[0],
@@ -63,9 +75,13 @@ function displayPrivateFileList(container, path, layout='list', reScroll=true) {
  * @param {*} path The current path
  */
 function displayCurrentDir(container, path) {
+	// Add the button to change layout type
+	var inverseLayout = layoutType == 'list' ? 'grid' : 'list', text = escapeHtmlProperty(layoutType == 'list' ? '{JS:L:LAYOUT_GRID}' : '{JS:L:LAYOUT_LIST}');
+	$('#' + container).append('<img src="{JS:S:DIR}media/files/' + inverseLayout + '.svg" id="layout-selector" alt="' + text + '" title="' + text + '"' +
+		' onclick="updateLayoutType(\'' + inverseLayout + '\');" />');
 	// Split the path
 	let buildingPath = '';
-	$('#' + container).append('<div id="current-path">&gt;</div>');
+	$('#' + container).append('<div id="current-path">&gt;</div><br />');
 	path.split('/').forEach(dir => {
 		if (dir) {
 			buildingPath += '/' + dir;
@@ -74,6 +90,20 @@ function displayCurrentDir(container, path) {
 		$('#current-path').append(getInlineButton(dir || '{JS:L:MY_FILES}', () => {location.href = '#' + path;}));
 		$('#current-path').append('/');
 	});
+}
+
+/**
+ * Update the layout type
+ * @param {*} layoutType The type of layout to use ('list' or 'grid')
+ */
+function updateLayoutType(layout) {
+	if (layout != 'list' && layout != 'grid') {
+		return;
+	}
+	layoutType = layout;
+	displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+	localStorage.setItem('files.layout', layout);
+	$('#content').css('textAlign', layout == 'grid' ? 'center' : 'left');
 }
 
 /**
@@ -105,13 +135,8 @@ function getInlineButton(content, callback, className='') {
  * @param {*} container The id of the parent element
  * @param {*} path The current path
  * @param {*} files The list of the files as returned by the API
- * @param {*} usage The current usage of the user
- * @param {*} quota The maximum quota allowed for the user
  */
-function renderLayoutList(container, path, files, usage, quota) {
-	// Display current dir
-	$('#' + container).html('');
-	displayCurrentDir(container, path);
+function renderLayoutList(container, path, files) {
 	// Display the files
 	var content = '<table class="w-100 mt-3 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
@@ -123,15 +148,26 @@ function renderLayoutList(container, path, files, usage, quota) {
 		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
-	// Check if empty
-	if (Object.keys(files).length == 0) {
-		$('#' + container).append('<i class="lighter">{JS:L:EMPTY_DIRECTORY}</i>');
+}
+
+/**
+ * Displays a grid of files
+ * 
+ * @param {*} container The id of the parent element
+ * @param {*} path The current path
+ * @param {*} files The list of the files as returned by the API
+ */
+function renderLayoutGrid(container, path, files) {
+	// Display the files
+	var content = '<div id="grid-display">';
+	for (const [file, attributes] of Object.entries(files)) {
+		var is_dir = attributes.type == 'dir';
+		content += '<div class="grid-element"><span style="cursor:pointer;" class="me-2 lighter" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
+		'<div style="cursor:pointer;" class="cut-text" title="' + escapeHtml(file) + '" onclick="location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
+		'<img src="' + getIcon(is_dir ? 'dir' : attributes.mime) + '" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" /><br />' +
+		'' + escapeHtml(file) + '</div></div>';
 	}
-	// Add the file uploader
-	$('#' + container).append('<div id="file-upload" class="mt-3 mb-4"></div>');
-	appendFileUpload('file-upload', path);
-	// Add the quota informations
-	displayQuota(container, usage, quota);
+	$('#' + container).append(content + '</div>');
 }
 
 /**
@@ -328,17 +364,6 @@ function getType(mime) {
 		return '{JS:L:UNKNOWN}';
 	}
 	return mimeTypes[mime];
-}
-
-/**
- * Displays a grid of files
- * 
- * @param {*} container The id of the parent element
- * @param {*} path The current path
- * @param {*} files The list of the files as returned by the API
- */
-function renderLayoutGrid(container, path, files) {
-	// TODO
 }
 
 /**
