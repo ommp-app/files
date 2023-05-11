@@ -18,22 +18,3 @@
 	<div id="text-controls"></div>
 	<textarea id="text-content" class="prevent-close" spellcheck="true"></textarea>
 </div>
-<script>
-// Check if we can display files list
-if ({R:files.allow_private_files}) {
-	// Get path if needed
-	var path = '/';
-	if (location.hash) {
-		path = location.hash.substr(1);
-	}
-	// Display private files list
-	displayPrivateFileList('content', path);
-	// Listen hash change
-	window.addEventListener('hashchange', (e) => {
-		// Get the path
-		var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
-		// Update the display
-		displayPrivateFileList('content', hash);
-	}, false);
-}
-</script>

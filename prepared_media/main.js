@@ -1,6 +1,9 @@
 // The last version of the file (to detect if file has changed)
 let lastFileContent = '', lastFile = '';
 
+// The current layout type
+let layoutType = 'list';
+
 // Fix negative modulo (thanks JavaScript)
 Number.prototype.mod = function(n) {
 	return ((this % n) + n) % n;
@@ -12,8 +15,9 @@ Number.prototype.mod = function(n) {
  * @param {*} container The id of the parent HTML element
  * @param {*} path The path to display
  * @param {*} layout The layout type, 'list' or 'grid' (default is 'list')
+ * @param {*} reScroll Save the scroll after re-draw
  */
-function displayPrivateFileList(container, path, layout='list') {
+function displayPrivateFileList(container, path, layout='list', reScroll=true) {
 	// Prepare path
 	if (!path.startsWith('/')) {
 		path = '/' + path;
@@ -33,6 +37,8 @@ function displayPrivateFileList(container, path, layout='list') {
 		// Close the viewers if needed
 		closeImagePreview();
 		closeTextEditor();
+		// Save the scroll to restore it in case of a refresh
+		var scroll = [window.scrollX, window.scrollY];
 		// Display
 		if (layout == 'list') {
 			renderLayoutList(container, r.clean_path, r.files, r.usage, r.quota);
@@ -41,6 +47,12 @@ function displayPrivateFileList(container, path, layout='list') {
 		} else {
 			notifError('{JS:L:UNKNOWN_LAYOUT}', '{JS:L:ERROR}');
 		}
+		// Reset scroll if needed
+		window.scrollTo({
+			left: scroll[0],
+			top: reScroll ? scroll[1] : 0,
+			behavior: 'instant'
+		});
 	});
 }
 
@@ -97,8 +109,6 @@ function getInlineButton(content, callback, className='') {
  * @param {*} quota The maximum quota allowed for the user
  */
 function renderLayoutList(container, path, files, usage, quota) {
-	// Save the scroll to restore it in case of a refresh
-	var scroll = [window.scrollX, window.scrollY];
 	// Display current dir
 	$('#' + container).html('');
 	displayCurrentDir(container, path);
@@ -122,12 +132,6 @@ function renderLayoutList(container, path, files, usage, quota) {
 	appendFileUpload('file-upload', path);
 	// Add the quota informations
 	displayQuota(container, usage, quota);
-	// Reset the scroll
-	window.scrollTo({
-		left: scroll[0],
-		top: scroll[1],
-		behavior: 'instant'
-	});
 }
 
 /**
@@ -157,7 +161,7 @@ function moveFile(file) {
 				return;
 			}
 			// Refresh file list
-			displayPrivateFileList('content', parent);
+			displayPrivateFileList('content', parent, layoutType);
 			// Close the popup
 			closePopup();
 			// Display confirmation
@@ -182,7 +186,7 @@ function copyFile(file) {
 				return;
 			}
 			// Refresh file list
-			displayPrivateFileList('content', parent);
+			displayPrivateFileList('content', parent, layoutType);
 			// Close the popup
 			closePopup();
 			// Display confirmation
@@ -214,7 +218,7 @@ function doRenameFile(path, oldName, newName) {
 			return;
 		}
 		// Refresh file list
-		displayPrivateFileList('content', path);
+		displayPrivateFileList('content', path, layoutType);
 		// Close the popup
 		closePopup();
 	});
@@ -464,7 +468,7 @@ function closeTextEditor() {
 			}, () => {}, '{JS:L:WARNING}');
 		}
 		// Refresh file list
-		displayPrivateFileList('content', getParentDirectory(lastFile));
+		displayPrivateFileList('content', getParentDirectory(lastFile), layoutType);
 	}
 	// Hide the editor
 	$('#text-editor').hide();
@@ -489,7 +493,7 @@ function saveTextFile(path, content, refresh=false) {
 		notif('{JS:L:FILE_SAVED}');
 		// Refresh list
 		if (refresh) {
-			displayPrivateFileList('content', getParentDirectory(path));
+			displayPrivateFileList('content', getParentDirectory(path), layoutType);
 		}
 	});
 }
@@ -582,7 +586,7 @@ function appendFileUpload(container, path) {
 		// Display message
 		notif('{JS:L:FILE_UPLOADED}');
 		// Refresh files list
-		displayPrivateFileList('content', path);
+		displayPrivateFileList('content', path, layoutType);
 	}, {'path': path});
 }
 
@@ -601,5 +605,23 @@ window.onload = function() {
 
 	// Enable indentation support for text editor
 	enableIndentation();
+
+	// Check if we can display files list
+	if ({R:files.allow_private_files}) {
+		// Get path if needed
+		var path = '/';
+		if (location.hash) {
+			path = location.hash.substr(1);
+		}
+		// Display private files list
+		displayPrivateFileList('content', path, layoutType);
+		// Listen hash change
+		window.addEventListener('hashchange', (e) => {
+			// Get the path
+			var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
+			// Update the display and scroll to top
+			displayPrivateFileList('content', hash, layoutType, false);
+		}, false);
+	}
 	
 }
