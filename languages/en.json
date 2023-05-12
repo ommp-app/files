@@ -137,5 +137,6 @@
 	"cannot_copy_dir_in_itself": "You cannot copy a directory inside itself",
 	"cannot_copy_file": "Unable to copy file/directory",
 	"layout_list": "List view",
-	"layout_grid": "Grid view"
+	"layout_grid": "Grid view",
+	"informations": "Informations"
 }

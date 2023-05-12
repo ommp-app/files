@@ -529,7 +529,7 @@ function files_process_page($page, $pages_path) {
  *      FALSE else (in this case, we will check the url with the remaining modules, order is defined by module's priority value)
  */
 function files_url_handler($url) {
-	global $user;
+	global $user, $config;
     
 	// Check if url is a private file loading
 	$path = "";
@@ -542,6 +542,17 @@ function files_url_handler($url) {
 
 	// If file exists then we display it
 	if ($path != "" && file_exists($path) && !is_dir($path)) {
+
+		// Display thumb if needed and allowed
+		if (isset($_GET['s']) && $config->get("files.images_preview") == "1") {
+			$size = intval($_GET['s']);
+			if ($size > 0) {
+				$result = get_image_thumbnail($path, $size, 75);
+				if ($result) {
+					exit();
+				}
+			}
+		}
 
 		// Set content type and size
 		header('Content-Type: ' . mime_content_type($path));

@@ -146,9 +146,9 @@ function renderLayoutList(container, path, files) {
 		var is_dir = attributes.type == 'dir';
 		var type = is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime);
 		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter" title="{JS:L:EDIT}" onclick="editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
-		'<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) +
-		'" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" />' + escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type +
-		'</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td></tr>';
+		'<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
+		'<div class="me-2 list-image-bg" style="background:#fff url(' + escapeHtmlProperty(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification), true).replaceAll(/[\(\)]/g, '\\$&') + ') center center/contain no-repeat;"></div>' + escapeHtml(file) + '</span></td>' +
+		'<td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type + '</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
 }
@@ -167,8 +167,8 @@ function renderLayoutGrid(container, path, files) {
 		var is_dir = attributes.type == 'dir';
 		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
 		'<span class="me-2 lighter" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
-		'<div class="cut-text"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) + '" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" /><br />' +
-		'' + escapeHtml(file) + '</div></div>';
+		'<div class="grid-image-bg" style="background:#fff url(' + escapeHtmlProperty(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification), true).replaceAll(/[\(\)]/g, '\\$&') + ') center center/contain no-repeat;">' +
+		'</div><div class="cut-text">' + escapeHtml(file) + '</div></div>';
 	}
 	$('#' + container).append(content + '</div>');
 }
@@ -182,7 +182,7 @@ function editFile(file) {
 	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button><br />' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="copyFile(\'' + escapedFileName + '\');">{JS:L:COPY}</button>' +
-		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button>', true);
+		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button><button class="btn btn-outline-dark ms-2 mt-2">{JS:L:INFORMATIONS}</button>', true);
 }
 
 /**
@@ -330,9 +330,11 @@ function displayQuota(container, usage, quota) {
  * Return the icon URL for a mime type
  * 
  * @param {*} mime The mime type of the file or 'dir' if it's a directory
+ * @param {*} file The file to get icon
+ * @param {*} version The version of the file
  * @return The URL of the icon
  */
-function getIcon(mime) {
+function getIcon(mime, file, version) {
 	// Check if directory
 	if (mime == 'dir') {
 		return '{JS:S:DIR}media/files/icons/folder.svg';
@@ -344,6 +346,9 @@ function getIcon(mime) {
 	// Get first part
 	if (mime.includes('/')) {
 		var type = mime.split('/')[0];
+		if (type == 'image' && '{JS:C:files.images_preview}' == '1') {
+			return '{JS:S:DIR}private-file' + file + '?v=' + version + '&s=200';
+		}
 		if (['audio', 'font', 'video', 'image', 'text'].includes(type)) {
 			return '{JS:S:DIR}media/files/icons/' + type + '.svg';
 		} else if (['application/x-bzip', 'application/x-bzip2', 'application/java-archive', 'application/x-rar-compressed',

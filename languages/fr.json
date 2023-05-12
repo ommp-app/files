@@ -137,5 +137,6 @@
 	"cannot_copy_dir_in_itself": "Vous ne pouvez pas copier un répertoire dans lui-même",
 	"cannot_copy_file": "Impossible de copier le fichier/dossier",
 	"layout_list": "Affichage en liste",
-	"layout_grid": "Affichage en grille"
+	"layout_grid": "Affichage en grille",
+	"informations": "Informations"
 }
