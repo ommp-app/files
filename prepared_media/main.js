@@ -80,11 +80,11 @@ function displayPrivateFileList(container, path, layout='list', reScroll=true) {
 function displayCurrentDir(container, path) {
 	// Add the button to change layout type
 	var inverseLayout = layoutType == 'list' ? 'grid' : 'list', text = escapeHtmlProperty(layoutType == 'list' ? '{JS:L:LAYOUT_GRID}' : '{JS:L:LAYOUT_LIST}');
-	$('#' + container).append('<img src="{JS:S:DIR}media/files/' + inverseLayout + '.svg" id="layout-selector" alt="' + text + '" title="' + text + '"' +
+	$('#' + container).append('<img src="{JS:S:DIR}media/files/' + inverseLayout + '.svg" id="layout-selector" class="mb-3" alt="' + text + '" title="' + text + '"' +
 		' onclick="updateLayoutType(\'' + inverseLayout + '\');" />');
 	// Split the path
 	let buildingPath = '';
-	$('#' + container).append('<div id="current-path">&gt;</div><br />');
+	$('#' + container).append('<div id="current-path" class="mb-3">&gt;</div><br />');
 	path.split('/').forEach(dir => {
 		if (dir) {
 			buildingPath += '/' + dir;
@@ -141,7 +141,7 @@ function getInlineButton(content, callback, className='') {
  */
 function renderLayoutList(container, path, files) {
 	// Display the files
-	var content = '<table class="w-100 mt-3 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th></tr>';
+	var content = '<table class="w-100 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
 		var type = is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime);
