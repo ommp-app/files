@@ -2,7 +2,7 @@
 let lastFileContent = '', lastFile = '';
 
 // The current layout type
-let layoutType = localStorage.getItem('files.layout') || 'list';
+let layoutType = localStorage.getItem('files.layout') || 'grid';
 
 // Global variable to prevent rescroll on list update
 let preventRescroll = false;

@@ -167,7 +167,13 @@ function files_process_api($action, $data) {
 	// Check if user directory exists
 	$user_dir = OMMP_ROOT . "/data/files/$user->id";
 	if (!is_dir($user_dir)) {
-		@mkdir(OMMP_ROOT . "/data/files/$user->id", 0777, TRUE);
+		@mkdir($user_dir, 0777, TRUE);
+	}
+
+	// Check if user trash exists
+	$user_trash = OMMP_ROOT . "/data/files/$user->id.trash";
+	if (!is_dir($user_trash)) {
+		@mkdir($user_trash, 0777, TRUE);
 	}
 
 	// Get user usage
@@ -193,7 +199,7 @@ function files_process_api($action, $data) {
 		}
 
 		// Prepare path
-		$short_path =prepare_path($data['path']);
+		$short_path = prepare_path($data['path']);
 		$path = $user_dir . $short_path;
 
 		// Check if directory exists
@@ -207,19 +213,29 @@ function files_process_api($action, $data) {
 			];
 		}
 
-		// Get the content of the directory
-		$content = [];
-		foreach (scandir($path) as $file) {
+		// Get files list and sort it for natural reading
+		$files = scandir($path);
+		natcasesort($files);
+
+		// Get files informations
+		$content_files = [];
+		$content_dirs = [];
+		foreach ($files as $file) {
 			if ($file == "." || $file == "..") {
 				continue;
 			}
-			$content[$file] = get_file_informations("$path/$file");
+			$file_data = get_file_informations("$path/$file");
+			if ($file_data['type'] == "dir") {
+				$content_dirs[$file] = $file_data;
+			} else {
+				$content_files[$file] = $file_data;
+			}
 		}
 
 		// Return the list
 		return [
 			"ok" => TRUE,
-			"files" => $content,
+			"files" => array_merge($content_dirs, $content_files), // Display directories before files
 			"clean_path" => $short_path,
 			"usage" => $usage,
 			"quota" => $max_quota
