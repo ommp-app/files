@@ -138,5 +138,10 @@
 	"cannot_copy_file": "Impossible de copier le fichier/dossier",
 	"layout_list": "Affichage en liste",
 	"layout_grid": "Affichage en grille",
-	"informations": "Informations"
+	"informations": "Informations",
+	"name": "Nom",
+	"path": "Emplacement",
+	"creation": "Création",
+	"modification": "Modification",
+	"access": "Accès"
 }

@@ -138,5 +138,10 @@
 	"cannot_copy_file": "Unable to copy file/directory",
 	"layout_list": "List view",
 	"layout_grid": "Grid view",
-	"informations": "Informations"
+	"informations": "Informations",
+	"name": "Name",
+	"path": "Location",
+	"creation": "Creation",
+	"modification": "Modification",
+	"access": "Access"
 }

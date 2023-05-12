@@ -182,7 +182,42 @@ function editFile(file) {
 	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button><br />' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="copyFile(\'' + escapedFileName + '\');">{JS:L:COPY}</button>' +
-		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button><button class="btn btn-outline-dark ms-2 mt-2">{JS:L:INFORMATIONS}</button>', true);
+		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button><button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>', true);
+}
+
+/**
+ * Display informations about a file
+ * @param {*} file The file path
+ */
+function informations(file) {
+	Api.apiRequest('files', 'file-data', {'path': file}, r => {
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		var informations = '';
+		if (r.data.type == 'file') {
+			informations = '<table><tr><td class="lighter">{JS:L:NAME}</td><td class="ps-5">' + escapeHtml(getFileName(r.clean_path)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:PATH}</td><td class="ps-5">' + escapeHtml(getParentDirectory(r.clean_path)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:SIZE}</td><td class="ps-5">' + humanFileSize(r.data.size) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:TYPE}</td><td class="ps-5">' + escapeHtml(getType(r.data.mime)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:CREATION}</td><td class="ps-5">' + escapeHtml(r.data.formatted_creation) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:MODIFICATION}</td><td class="ps-5">' + escapeHtml(r.data.formatted_modification) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:ACCESS}</td><td class="ps-5">' + escapeHtml(r.data.formatted_access) + '</td></tr>' +
+				'</table>';
+		} else {
+			informations = '<table><tr><td class="lighter">{JS:L:NAME}</td><td class="ps-5">' + escapeHtml(getFileName(r.clean_path)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:PATH}</td><td class="ps-5">' + escapeHtml(getParentDirectory(r.clean_path)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:CHILD}</td><td class="ps-5">' + r.data.child + ' {JS:L:ELEMENTS}</td></tr>' +
+				'<tr><td class="lighter">{JS:L:CREATION}</td><td class="ps-5">' + escapeHtml(r.data.formatted_creation) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:MODIFICATION}</td><td class="ps-5">' + escapeHtml(r.data.formatted_modification) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:ACCESS}</td><td class="ps-5">' + escapeHtml(r.data.formatted_access) + '</td></tr>' +
+				'</table>';
+		}
+		// Display informations
+		popup('{JS:L:INFORMATIONS}', informations);
+	})
 }
 
 /**

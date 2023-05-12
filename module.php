@@ -241,6 +241,29 @@ function files_process_api($action, $data) {
 			"quota" => $max_quota
 		];
 
+	} else if ($action == "file-data") {
+
+		// Check the parameters
+		if (!check_keys($data, ["path"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare path
+		$short_path = prepare_path($data['path']);
+		$path = $user_dir . $short_path;
+
+		// Return the data
+		return [
+			"ok" => TRUE,
+			"data" => get_file_informations($path),
+			"clean_path" => $short_path
+		];
+
 	} else if ($action == "update-text-file") {
 
 		// Check the parameters
@@ -545,12 +568,9 @@ function files_url_handler($url) {
 
 		// Display thumb if needed and allowed
 		if (isset($_GET['s']) && $config->get("files.images_preview") == "1") {
-			$size = intval($_GET['s']);
-			if ($size > 0) {
-				$result = get_image_thumbnail($path, $size, 75);
-				if ($result) {
-					exit();
-				}
+			$result = get_image_thumbnail($path, intval($_GET['s']), 75);
+			if ($result) {
+				exit();
 			}
 		}
 
