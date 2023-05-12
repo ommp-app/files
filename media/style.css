@@ -85,11 +85,12 @@
 .grid-element {
     display: inline-block;
     text-align: left;
-    border: 1px solid #D0D0D0;
+    border: 1px solid #E0E0E0;
     border-radius: 1em;
     margin: 1em;
     padding: 0.5em 1em 0.5em 1em;
     width: 9.5em;
+    cursor: pointer;
 }
 .grid-element img {
     width: 100%;

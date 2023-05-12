@@ -165,9 +165,9 @@ function renderLayoutGrid(container, path, files) {
 	var content = '<div id="grid-display">';
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
-		content += '<div class="grid-element"><span style="cursor:pointer;" class="me-2 lighter" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
-		'<div style="cursor:pointer;" class="cut-text" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
-		'<img src="' + getIcon(is_dir ? 'dir' : attributes.mime) + '" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" /><br />' +
+		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
+		'<span class="me-2 lighter" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
+		'<div class="cut-text"><img src="' + getIcon(is_dir ? 'dir' : attributes.mime) + '" class="me-2 inline-image-semi" style="vertical-align:bottom;" alt="" /><br />' +
 		'' + escapeHtml(file) + '</div></div>';
 	}
 	$('#' + container).append(content + '</div>');

@@ -235,7 +235,7 @@ function files_process_api($action, $data) {
 		// Return the list
 		return [
 			"ok" => TRUE,
-			"files" => array_merge($content_dirs, $content_files), // Display directories before files
+			"files" => $content_dirs + $content_files, // Display directories before files
 			"clean_path" => $short_path,
 			"usage" => $usage,
 			"quota" => $max_quota
