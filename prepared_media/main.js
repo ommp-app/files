@@ -141,14 +141,16 @@ function getInlineButton(content, callback, className='') {
  */
 function renderLayoutList(container, path, files) {
 	// Display the files
-	var content = '<table class="w-100 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th></tr>';
+	var content = '<table class="w-100 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th>' + 
+		'<th class="pb-2 w-30 hidden-mobile">{JS:L:LAST_MODIFICATION}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
 		var type = is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime);
 		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter" title="{JS:L:EDIT}" onclick="editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
 		'<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
-		'<div class="me-2 list-image-bg" style="background:#fff url(' + escapeHtmlProperty(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification), true).replaceAll(/[\(\)]/g, '\\$&') + ') center center/contain no-repeat;"></div>' + escapeHtml(file) + '</span></td>' +
-		'<td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type + '</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) + '</td></tr>';
+		'<div class="me-2 list-image-bg" style="background:#fff url(' + escapeHtmlProperty(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification), true).replaceAll(/[\(\)]/g, '\\$&') + ') center center/contain no-repeat;"></div>' +
+		escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type + '</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) +
+		'</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
 	}
 	$('#' + container).append(content + '</table>');
 }
@@ -198,21 +200,21 @@ function informations(file) {
 		}
 		var informations = '';
 		if (r.data.type == 'file') {
-			informations = '<table><tr><td class="lighter">{JS:L:NAME}</td><td class="ps-5">' + escapeHtml(getFileName(r.clean_path)) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:PATH}</td><td class="ps-5">' + escapeHtml(getParentDirectory(r.clean_path)) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:SIZE}</td><td class="ps-5">' + humanFileSize(r.data.size) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:TYPE}</td><td class="ps-5">' + escapeHtml(getType(r.data.mime)) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:CREATION}</td><td class="ps-5">' + escapeHtml(r.data.formatted_creation) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:MODIFICATION}</td><td class="ps-5">' + escapeHtml(r.data.formatted_modification) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:ACCESS}</td><td class="ps-5">' + escapeHtml(r.data.formatted_access) + '</td></tr>' +
+			informations = '<table><tr><td class="lighter">{JS:L:NAME}</td><td class="ps-4">' + escapeHtml(getFileName(r.clean_path)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:PATH}</td><td class="ps-4">' + escapeHtml(getParentDirectory(r.clean_path)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:SIZE}</td><td class="ps-4">' + humanFileSize(r.data.size) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:TYPE}</td><td class="ps-4">' + escapeHtml(getType(r.data.mime)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:CREATION}</td><td class="ps-4">' + escapeHtml(r.data.formatted_creation) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:MODIFICATION}</td><td class="ps-4">' + escapeHtml(r.data.formatted_modification) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:ACCESS}</td><td class="ps-4">' + escapeHtml(r.data.formatted_access) + '</td></tr>' +
 				'</table>';
 		} else {
-			informations = '<table><tr><td class="lighter">{JS:L:NAME}</td><td class="ps-5">' + escapeHtml(getFileName(r.clean_path)) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:PATH}</td><td class="ps-5">' + escapeHtml(getParentDirectory(r.clean_path)) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:CHILD}</td><td class="ps-5">' + r.data.child + ' {JS:L:ELEMENTS}</td></tr>' +
-				'<tr><td class="lighter">{JS:L:CREATION}</td><td class="ps-5">' + escapeHtml(r.data.formatted_creation) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:MODIFICATION}</td><td class="ps-5">' + escapeHtml(r.data.formatted_modification) + '</td></tr>' +
-				'<tr><td class="lighter">{JS:L:ACCESS}</td><td class="ps-5">' + escapeHtml(r.data.formatted_access) + '</td></tr>' +
+			informations = '<table><tr><td class="lighter">{JS:L:NAME}</td><td class="ps-4">' + escapeHtml(getFileName(r.clean_path)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:PATH}</td><td class="ps-4">' + escapeHtml(getParentDirectory(r.clean_path)) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:CHILD}</td><td class="ps-4">' + r.data.child + ' {JS:L:ELEMENTS}</td></tr>' +
+				'<tr><td class="lighter">{JS:L:CREATION}</td><td class="ps-4">' + escapeHtml(r.data.formatted_creation) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:MODIFICATION}</td><td class="ps-4">' + escapeHtml(r.data.formatted_modification) + '</td></tr>' +
+				'<tr><td class="lighter">{JS:L:ACCESS}</td><td class="ps-4">' + escapeHtml(r.data.formatted_access) + '</td></tr>' +
 				'</table>';
 		}
 		// Display informations
