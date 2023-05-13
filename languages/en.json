@@ -165,5 +165,6 @@
 	"confirm_empty_trash": "Do you want to empty the trash? All files will be permanently deleted",
 	"emptied_trash": "Trash has been emptied",
 	"empty_trash_error": "Unable to completely empty the trash",
-	"paste": "Paste"
+	"paste": "Paste",
+	"dir": "Directory"
 }

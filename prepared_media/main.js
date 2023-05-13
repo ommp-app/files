@@ -468,11 +468,12 @@ function showTrash() {
 		// Display the list
 		var filesNumber = Object.keys(r.files).length;
 		if (filesNumber > 0) {
-			var list = '<table><tr class="lighter"><th class="p-2">{JS:L:NAME}</th><th class="p-2">{JS:L:SIZE}</th><th class="p-2">{JS:L:DELETE_DATE}</th><th class="p-2">{JS:L:ACTIONS}</th></tr>';
+			var list = '<table><tr class="lighter"><th class="p-2">{JS:L:NAME}</th><th class="p-2">{JS:L:SIZE}</th><th class="p-2">{JS:L:TYPE}</th><th class="p-2">{JS:L:DELETE_DATE}</th><th class="p-2">{JS:L:ACTIONS}</th></tr>';
 			for (const [trash_id, attributes] of Object.entries(r.files)) {
 				var escapedId = escapeHtmlProperty(trash_id, true);
 				list += '<tr style="border-top:1px solid #D0D0D0;" class="p-2"><td class="p-2">' + escapeHtml(attributes.path) + '</td><td class="p-2">' + humanFileSize(attributes.size) + '</td><td class="p-2">' +
-				escapeHtml(attributes.formatted_deleted) + '</td><td class="p-2"><div onclick="restoreFile(\'' + escapedId + '\');" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:RESTORE}</div>' +
+				escapeHtml(attributes.type == 'dir' ? '{JS:L:DIR}' : '{JS:L:FILE}') + '</td><td class="p-2">' + escapeHtml(attributes.formatted_deleted) + '</td><td class="p-2">' +
+				'<div onclick="restoreFile(\'' + escapedId + '\');" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:RESTORE}</div>' +
 				'<div onclick="deleteFile(\'' + escapedId + '\', true);" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:DELETE}</div></td></tr>';
 			}
 		} else {

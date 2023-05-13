@@ -165,5 +165,6 @@
 	"confirm_empty_trash": "Voulez-vous vider la corbeille ? Tous les fichiers seront supprimés définitivement",
 	"emptied_trash": "La corbeille a été vidée",
 	"empty_trash_error": "Impossible de vider complètement la corbeille",
-	"paste": "Coller"
+	"paste": "Coller",
+	"dir": "Répertoire"
 }
