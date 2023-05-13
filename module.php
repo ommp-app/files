@@ -164,6 +164,52 @@ function files_process_api($action, $data) {
 		return [$quota == 0 || $quota >= $usage + $usage_delta, $usage_delta];
 	}
 
+	/**
+	 * Empty the trash for a given user
+	 * 
+	 * @param int $user_id
+	 * 		The user id
+	 * 
+	 * @return boolean
+	 * 		TRUE if the trash is empty
+	 * 		FALSE else
+	 */
+	function empty_trash($user_id) {
+		global $sql, $db_prefix;
+
+		$user_trash = OMMP_ROOT . "/data/files/$user_id.trash";
+
+		// Iter over all files
+		$size = 0;
+		foreach (scandir($user_trash) as $file) {
+			if ($file == "." || $file == "..") {
+				continue;
+			}
+			$to_delete = $user_trash . "/" . $file;
+			// If meta file, add the size to the total
+			if (substr($file, -5) == ".meta") {
+				$meta = @json_decode(@file_get_contents($to_delete));
+				if ($meta === NULL) {
+					continue;
+				}
+				$size += $meta->size;
+			}
+			// Delete the file / directory
+			if (is_dir($to_delete)) {
+				rrmdir($to_delete);
+			} else {
+				unlink($to_delete);
+			}
+		}
+
+		// Update quota
+		$sql->exec("UPDATE {$db_prefix}files_quotas SET quota = quota - $size WHERE user_id = " . $sql->quote($user_id));
+
+		// Check if trash is empty
+		return count(scandir($user_trash)) == 2;
+
+	}
+
 	// Check if user directory exists
 	$user_dir = OMMP_ROOT . "/data/files/$user->id";
 	if (!is_dir($user_dir)) {
@@ -172,8 +218,18 @@ function files_process_api($action, $data) {
 
 	// Check if user trash exists
 	$user_trash = OMMP_ROOT . "/data/files/$user->id.trash";
-	if (!is_dir($user_trash)) {
+	$trash_exists = is_dir($user_trash);
+	if (!$trash_exists && $user->has_right("files.use_trash")) {
+		// If trash is allowed and does not exists, we create it
 		@mkdir($user_trash, 0777, TRUE);
+	} else if ($trash_exists && !$user->has_right("files.use_trash")) {
+		
+		// If trash is not allowed but exists, we remove it
+		empty_trash($user->id);
+
+		// Delete the trash
+		rrmdir($user_trash);
+		
 	}
 
 	// Get user usage
@@ -510,6 +566,212 @@ function files_process_api($action, $data) {
 			"clean_path_new" => $short_path_new
 		];
 
+	} else if ($action == "delete") {
+
+		// Check the parameters
+		if (!check_keys($data, ["path"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Check if we delete the file from the trash
+		$from_trash = isset($data['from_trash']) && $data['from_trash'] == "true";
+
+		// Prepare the path
+		$short_path = prepare_path($data['path']);
+		$path = ($from_trash ? $user_trash : $user_dir) . $short_path;
+
+		// Check if old file exists
+		if (!file_exists($path)) {
+			return ["error" => $user->module_lang->get("file_not_found")];
+		}
+
+		// Check if is directory
+		$is_dir = is_dir($path);
+
+		// Get the size
+		$size = $is_dir ? folder_size($path) : filesize($path);
+
+		// Check if must move it to trash
+		if (!$from_trash && $user->has_right("files.use_trash")) {
+
+			// Get a random name for the trash
+			$random_name = random_str(10);
+			$trash_path = $user_trash . "/" . $random_name;
+
+			// Moves the file to trash
+			$result = rename($path, $trash_path);
+
+			// Check for errors
+			if ($result === FALSE) {
+				return ["error" => $user->module_lang->get("cannot_trash")];
+			}
+
+			// Write metadata
+			file_put_contents($trash_path . ".meta", json_encode(["path" => $short_path, "delete_ts" => time(), "size" => $size]));
+
+			// Return success
+			return ["ok" => TRUE, "message" => $user->module_lang->get("trashed")];
+
+		} else {
+
+			// If trash disabled or file already from trash
+
+			// Remove it
+			$result = $is_dir ? rrmdir($path) : unlink($path);
+
+			// Check for errors
+			if ($result === FALSE) {
+				return ["error" => $user->module_lang->get("cannot_delete")];
+			}
+			
+			// Remove meta if from trash
+			if ($from_trash) {
+				unlink($path . ".meta");
+			}
+
+			// Update the quota
+			$sql->exec("UPDATE {$db_prefix}files_quotas SET quota = quota - $size WHERE user_id = " . $sql->quote($user->id));
+
+			// Return success
+			return ["ok" => TRUE, "message" => $user->module_lang->get("deleted")];
+
+		}
+
+	} else if ($action == "list-trash") {
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Check if user has the right to use the trash
+		if (!$user->has_right("files.use_trash")) {
+			return ["error" => $user->module_lang->get("trash_disallowed")];
+		}
+
+		// List the files in trash
+		$files = [];
+		$size = 0;
+		foreach (scandir($user_trash) as $file) {
+			if (substr($file, -5) == ".meta") {
+				$meta = @json_decode(@file_get_contents($user_trash . "/" . $file));
+				if ($meta === NULL) {
+					continue;
+				}
+				$trash_id = substr($file, 0, -5);
+				$trash_path = $user_trash . "/" . $trash_id;
+				$files[$trash_id] = [
+					"path" => $meta->path,
+					"type" => is_dir($trash_path) ? "dir" : "file",
+					"deleted" => $meta->delete_ts,
+					"formatted_deleted" => date($user->module_lang->get("date_format"), $meta->delete_ts),
+					"size" => $meta->size
+				];
+				$size += $meta->size;
+			}
+		}
+
+		// Return list
+		return [
+			"ok" => TRUE,
+			"files" => $files,
+			"size" => $size
+		];
+
+	} else if ($action == "restore") {
+
+		// Check the parameters
+		if (!check_keys($data, ["id"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Check if user has the right to use the trash
+		if (!$user->has_right("files.use_trash")) {
+			return ["error" => $user->module_lang->get("trash_disallowed")];
+		}
+
+		// Get the trash path
+		$trash_path = $user_trash . "/" . $data['id'];
+
+		// Get the trashed file metadata
+		$meta = @json_decode(@file_get_contents($trash_path . ".meta"));
+
+		// Check error
+		if ($meta === NULL) {
+			return ["error" => $user->module_lang->get("cannot_read_trash_meta")];
+		}
+
+		// Get the destination path
+		$dest_path = $user_dir . $meta->path;
+
+		// Check if the destination exists
+		if (file_exists($dest_path)) {
+			return ["error" => $user->module_lang->get("file_exists")];
+		}
+
+		// Check if we need to create a directory for restoration
+		$target_parent = dirname($dest_path);
+		if (!is_dir($target_parent)) {
+			$create = @mkdir($target_parent, 0777, TRUE);
+			if (!$create) {
+				return ["error" => $user->module_lang->get("cannot_create_dir")];
+			}
+		}
+
+		// Try to move the file
+		$result = rename($trash_path, $dest_path);
+
+		// Check error
+		if ($result === FALSE) {
+			return ["error" => $user->module_lang->get("cannot_restore")];
+		}
+
+		// Delete metedata file
+		unlink($trash_path . ".meta");
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"message" => $user->module_lang->get("restore_success")
+		];
+
+	} else if ($action == "empty-trash") {
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Check if user has the right to use the trash
+		if (!$user->has_right("files.use_trash")) {
+			return ["error" => $user->module_lang->get("trash_disallowed")];
+		}
+
+		// Empty the trash
+		$result = empty_trash($user->id);
+		
+		// Check error
+		if ($result === FALSE) {
+			return ["error" => $user->module_lang->get("empty_trash_error")];
+		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"message" => $user->module_lang->get("emptied_trash")
+		];
+
+
 	}
 
     return FALSE;
@@ -578,12 +840,8 @@ function files_url_handler($url) {
 		header('Content-Type: ' . mime_content_type($path));
 		header('Content-Length: ' . filesize($path));
 
-		// Set cache expiration in one year
-		$seconds_to_cache = 365*24*60*60;
-		$ts = gmdate("D, d M Y H:i:s", time() + $seconds_to_cache) . " GMT";
-		header("Expires: $ts");
-		header("Pragma: cache");
-		header("Cache-Control: max-age=$seconds_to_cache");
+		// Set cache expiration
+		headers_cache();
 
 		// Read the file
 		readfile($path);

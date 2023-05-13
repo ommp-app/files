@@ -184,7 +184,98 @@ function editFile(file) {
 	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button><br />' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="copyFile(\'' + escapedFileName + '\');">{JS:L:COPY}</button>' +
-		'<button class="btn btn-outline-dark ms-2 mt-2">{JS:L:DELETE}</button><button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>', true);
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="deleteFile(\'' + escapedFileName + '\');">{JS:L:DELETE}</button>' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>', true);
+}
+
+/**
+ * Display the confirmation to empty the trash
+ */
+function emptyTrash() {
+	popup('{JS:L:EMPTY_TRASH}', '{JS:L:CONFIRM_EMPTY_TRASH}<br /><br />' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="doEmptyTrash();">{JS:L:YES}</button>' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="closePopup();">{JS:L:NO}</button>');
+}
+
+/**
+ * Call the API to empty the trash
+ */
+function doEmptyTrash() {
+	Api.apiRequest('files', 'empty-trash', {}, r => {
+		// Close popup
+		closePopup();
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Display success
+		notif(r.message);
+		// Refresh file list
+		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+	});
+}
+
+/**
+ * Display the confirmations for restoring a trashed file
+ * @param {*} fileId The trashed file id
+ */
+function restoreFile(fileId) {
+	popup('{JS:L:RESTORE}', '{JS:L:CONFIRM_RESTORE}<br /><br />' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="doRestoreFile(\'' + escapeHtmlProperty(fileId, true) + '\');">{JS:L:YES}</button>' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="closePopup();">{JS:L:NO}</button>');
+}
+
+/**
+ * Call the API to restore a file
+ * @param {*} fileId The file id to restore
+ */
+function doRestoreFile(fileId) {
+	Api.apiRequest('files', 'restore', {'id': fileId}, r => {
+		// Close popup
+		closePopup();
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Display success
+		notif(r.message);
+		// Refresh file list
+		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+	});
+}
+
+/**
+ * Display the confirmation for deleting a file
+ * @param {*} file The file to delete
+ * @param {*} fromTrash Are we trying to remove a file from the trash? (optional, default is false)
+ */
+function deleteFile(file, fromTrash=false) {
+	popup('{JS:L:DELETE}', (('{JS:R:files.use_trash}' == '1' && !fromTrash) ? '{JS:L:CONFIRM_TRASH}' : '{JS:L:CONFIRM_DELETE}') + '<br /><br />' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="doDeleteFile(\'' + escapeHtmlProperty(file, true) + '\', ' + (fromTrash ? 'true': 'false') + ');">{JS:L:YES}</button>' +
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="closePopup();">{JS:L:NO}</button>');
+}
+
+/**
+ * Call the API to delete/trash a file
+ * @param {*} file The file to delete
+ * @param {*} fromTrash Are we trying to remove a file from the trash? (optional, default is false)
+ */
+function doDeleteFile(file, fromTrash=false) {
+	Api.apiRequest('files', 'delete', {'path': file, 'from_trash': fromTrash}, r => {
+		// Close popup
+		closePopup();
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Display success
+		notif(r.message);
+		// Refresh file list
+		displayPrivateFileList('content', getParentDirectory(file), layoutType);
+	});
 }
 
 /**
@@ -253,7 +344,7 @@ function moveFile(file) {
 function copyFile(file) {
 	// Display the directory and name selector
 	let parent = getParentDirectory(file);
-	directorySelector('{JS:L:COPY_TO}', parent, '{JS:L:COPY}', (newPath, newName) => {
+	directorySelector('{JS:L:COPY_TO}', parent, '{JS:L:PASTE}', (newPath, newName) => {
 		// Call the Api to copy dir
 		Api.apiRequest('files', 'copy', {'file': file, 'new_path': newPath, 'new_name': newName}, r => {
 			// Check for errors
@@ -320,8 +411,8 @@ function directorySelector(title, path, button, callback, input=false) {
 
 		// Create the popup
 		popup(title, '<div id="directory-selector"></div><div id="sub-dirs"></div>' +
-			(input !== false ? '<input type="text" id="directory-selector-input" style="width:100%;display:inline-block;" class="form-control mt-2" value="' + escapeHtmlProperty(input) +'" onkeyup="if(event.key===\'Enter\'){$(\'#popup-button\').trigger(\'click\');}">' : '') +
-			'<button class="btn btn-outline-dark ms-2 mt-2" id="popup-button">' + escapeHtml(button) + '</button>');
+			(input !== false ? '<input type="text" id="directory-selector-input" style="width:100%;display:inline-block;" class="form-control mt-2" value="' + escapeHtmlProperty(input) +
+			'" onkeyup="if(event.key===\'Enter\'){$(\'#popup-button\').trigger(\'click\');}">' : '') + '<button class="btn btn-outline-dark ms-2 mt-2" id="popup-button">' + escapeHtml(button) + '</button>');
 
 		// Prepare the button
 		$('#popup-button').on('click', () => callback(r.clean_path, $('#directory-selector-input').val()));
@@ -360,7 +451,35 @@ function directorySelector(title, path, button, callback, input=false) {
  */
 function displayQuota(container, usage, quota) {
 	$('#' + container).append('<span class="' + (quota == 0 || usage <= quota ? 'lighter' : 'error') + '">{JS:L:USAGE}' + humanFileSize(usage) + ' / ' + (quota == 0 ? '&infin;' : humanFileSize(quota)) +
-	(quota != 0 ? ('<span class="ms-2">(' + Math.floor(usage / quota * 100) + '%)</span>') : '') + ' &nbsp;&ndash;&nbsp; {JS:L:MAX_UPLOAD}' + humanFileSize({S:MAX_UPLOAD}) + '</span>');
+	(quota != 0 ? ('<span class="ms-2">(' + Math.floor(usage / quota * 100) + '%)</span>') : '') + '</span><span class="lighter"> &nbsp;&ndash;&nbsp; {JS:L:MAX_UPLOAD}' + humanFileSize({S:MAX_UPLOAD}) +
+	('{JS:R:files.use_trash}' == '1' ? ' &nbsp;&ndash;&nbsp; <span onclick="showTrash();" style="cursor:pointer;">{JS:L:TRASH}</span>' : '') + '</span>');
+}
+
+/**
+ * Display the list of the files in the trash
+ */
+function showTrash() {
+	Api.apiRequest('files', 'list-trash', {}, r => {
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Display the list
+		var filesNumber = Object.keys(r.files).length;
+		if (filesNumber > 0) {
+			var list = '<table><tr class="lighter"><th class="p-2">{JS:L:NAME}</th><th class="p-2">{JS:L:SIZE}</th><th class="p-2">{JS:L:DELETE_DATE}</th><th class="p-2">{JS:L:ACTIONS}</th></tr>';
+			for (const [trash_id, attributes] of Object.entries(r.files)) {
+				var escapedId = escapeHtmlProperty(trash_id, true);
+				list += '<tr style="border-top:1px solid #D0D0D0;" class="p-2"><td class="p-2">' + escapeHtml(attributes.path) + '</td><td class="p-2">' + humanFileSize(attributes.size) + '</td><td class="p-2">' +
+				escapeHtml(attributes.formatted_deleted) + '</td><td class="p-2"><div onclick="restoreFile(\'' + escapedId + '\');" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:RESTORE}</div>' +
+				'<div onclick="deleteFile(\'' + escapedId + '\', true);" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:DELETE}</div></td></tr>';
+			}
+		} else {
+			list = '<i class="lighter m-5">{JS:L:TRASH_IS_EMPTY}<i>';
+		}
+		popup('{JS:L:TRASH}' + (filesNumber > 0 ? (' (' + humanFileSize(r.size) + ') <div onclick="emptyTrash();" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:EMPTY}</div>') : ''), list + '</table>');
+	});
 }
 
 /**
