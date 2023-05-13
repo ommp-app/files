@@ -771,6 +771,33 @@ function files_process_api($action, $data) {
 			"message" => $user->module_lang->get("emptied_trash")
 		];
 
+	} else if ($action == "create-folder") {
+
+		// Check the parameters
+		if (!check_keys($data, ["folder"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare the path
+		$short_path = prepare_path($data['folder']);
+		$path = $user_dir . $short_path;
+
+		// Create it
+		$create = @mkdir($path, 0777, TRUE);
+		if (!$create) {
+			return ["error" => $user->module_lang->get("cannot_create_dir")];
+		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"clean_path" => $short_path
+		];
 
 	}
 

@@ -93,6 +93,36 @@ function displayCurrentDir(container, path) {
 		$('#current-path').append(getInlineButton(dir || '{JS:L:MY_FILES}', () => {location.href = '#' + path;}));
 		$('#current-path').append('/');
 	});
+	$('#current-path').append('<img src="{JS:S:DIR}media/files/plus.svg" onclick="createFolder(\'' + escapeHtmlProperty(path, true) + '\');" id="new-folder" alt="{JS:L:NEW_DIR}" title="{JS:L:NEW_DIR}" />');
+}
+
+/**
+ * Displays the popup to create a folder
+ * @param {*} path The path where we want to create the folder
+ */
+function createFolder(path) {
+	var escapedPath = escapeHtmlProperty(path);
+	var createFunc = 'doCreateFolder(\'' + escapedPath + '\',$(\'#new-folder-name\').val());';
+	popup('{JS:L:NEW_DIR}', '<input type="text" id="new-folder-name" style="width:100%;display:inline-block;" class="form-control" value="" placeholder="' + escapeHtmlProperty('{JS:L:ENTER_NAME}') +
+		'" onkeyup="if(event.key===\'Enter\'){' + createFunc + '}" /><div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + createFunc + '">{JS:L:CREATE}</div>')
+}
+
+/**
+ * Call the API to rename a file
+ * @param {*} file 
+ */
+function doCreateFolder(path, name) {
+	Api.apiRequest('files', 'create-folder', {'folder': path + '/' + name}, r => {
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Refresh file list
+		displayPrivateFileList('content', path, layoutType);
+		// Close the popup
+		closePopup();
+	});
 }
 
 /**

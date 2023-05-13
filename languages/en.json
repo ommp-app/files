@@ -166,5 +166,8 @@
 	"emptied_trash": "Trash has been emptied",
 	"empty_trash_error": "Unable to completely empty the trash",
 	"paste": "Paste",
-	"dir": "Directory"
+	"dir": "Directory",
+	"new_dir": "New folder",
+	"create": "Create",
+	"enter_name": "Enter a name"
 }

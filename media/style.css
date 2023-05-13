@@ -112,3 +112,9 @@
     vertical-align: bottom;
     margin-right: 0.5em;
 }
+#new-folder {
+    cursor: pointer;
+    height: 0.8em;
+    vertical-align: baseline;
+    margin-left: 0.5em;
+}

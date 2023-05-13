@@ -166,5 +166,8 @@
 	"emptied_trash": "La corbeille a été vidée",
 	"empty_trash_error": "Impossible de vider complètement la corbeille",
 	"paste": "Coller",
-	"dir": "Répertoire"
+	"dir": "Répertoire",
+	"new_dir": "Nouveau dossier",
+	"create": "Créer",
+	"enter_name": "Entrez un nom"
 }
