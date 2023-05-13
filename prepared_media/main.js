@@ -398,9 +398,8 @@ function copyFile(file) {
  * @param {*} file The file path to rename
  */
 function renameFile(file) {
-	var escapedFileName = escapeHtmlProperty(getFileName(file));
-	var renameFunc = 'doRenameFile(\'' + escapeHtmlProperty(getParentDirectory(file), true) + '\', \'' + escapedFileName + '\',$(\'#file-new-name\').val());';
-	popup('{JS:L:RENAME}', '<input type="text" id="file-new-name" style="width:100%;display:inline-block;" class="form-control" value="' + escapedFileName +'" onkeyup="if(event.key===\'Enter\'){' + renameFunc + '}" />' +
+	var renameFunc = 'doRenameFile(\'' + escapeHtmlProperty(getParentDirectory(file), true) + '\', \'' + escapeHtmlProperty(getFileName(file), true) + '\',$(\'#file-new-name\').val());';
+	popup('{JS:L:RENAME}', '<input type="text" id="file-new-name" style="width:100%;display:inline-block;" class="form-control" value="' + escapeHtmlProperty(getFileName(file)) +'" onkeyup="if(event.key===\'Enter\'){' + renameFunc + '}" />' +
 		'<div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + renameFunc + '">{JS:L:RENAME}</div>')
 }
 
