@@ -482,7 +482,7 @@ function doDeleteFile(file, fromTrash=false) {
 		// Display success
 		notif(r.message);
 		// Refresh file list
-		displayPrivateFileList('content', getParentDirectory(file), layoutType);
+		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
 	});
 }
 
