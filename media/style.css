@@ -35,35 +35,18 @@
 #image-viewer > a > img {
     opacity: 0.5;
 }
-#text-editor {
-    display: none;
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 1021;
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: 3%;
-}
-#text-editor textarea {
-    width: 100%;
-    min-width: 100%;
-    height: 95%;
-    max-height: 95%;
-    min-height: 20%;
+#popup textarea {
+    width: 80vw;
+    min-width: 80vw;
+    height: 70vh;
+    max-height: 70vh;
+    min-height: 20vh;
     padding: 1em;
     border-radius: 0.5em;
     border: none;
 }
 #text-controls {
     margin-bottom: 1%;
-}
-#text-controls .btn {
-    border: none;
-    padding: 0 1em 0 1em!important;
-    opacity: 0.7;
-    font-family: sans-serif;
 }
 @media (max-width: 767px) {
     .hidden-mobile {

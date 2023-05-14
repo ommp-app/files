@@ -42,7 +42,7 @@ function displayPrivateFileList(container, path, layout='list', reScroll=true) {
 		}
 		// Close the viewers if needed
 		closeImagePreview();
-		closeTextEditor();
+		closePopup();
 		// Save the scroll to restore it in case of a refresh
 		var scroll = [window.scrollX, window.scrollY];
 		// Display current dir
@@ -714,7 +714,7 @@ function previewPrivateFile(file, path) {
 	if (file.mime.startsWith('image/')) {
 
 		// Close other previews
-		closeTextEditor();
+		closePopup();
 
 		// Display the image viewer
 		$('#image-view').attr('src', '');
@@ -763,19 +763,29 @@ function previewPrivateFile(file, path) {
 		var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
+
+				// Display the editor in the popup
+				popup(getFileName(path), '<textarea id="text-content" class="prevent-close" spellcheck="true"></textarea>', false, closeTextEditor);
+				
 				// Set the text
                 $('#text-content').val(this.responseText);
 				lastFileContent = $('#text-content').val(); // We use the textarea content and not the original on purpose because it can create differences with line break encoding
 				lastFile = path;
-				// Display the text editor
-				$('#text-editor').show();
-            }
+
+				// Add buttons for text edit
+				$(getInlineButton('{JS:L:SAVE}', () => saveTextFile(lastFile, $('#text-content').val()))).insertBefore('#popup-title img');
+				$(getInlineButton('{JS:L:CODE}', (e) => {
+					// Toggle code/text mode
+					$('#text-content').toggleClass('code');
+					$(e.target).html($('#text-content')[0].classList.contains('code') ? '{JS:L:TEXT}' : '{JS:L:CODE}');
+					// Disable spell check
+					$('#text-content').attr('spellcheck', $('#text-content').attr('spellcheck') == 'true' ? 'false' : 'true');
+				})).insertBefore('#popup-title img');
+
+			}
         };
         xhttp.open('GET', '{JS:S:DIR}private-file' + path + '?v=' + file.modification, true);
         xhttp.send();
-
-		// Set the "close" url
-		$('#text-editor').on('click', (e) => {e.target.classList.contains('prevent-close') ? null : location.href = '#' + getParentDirectory(path);});
 
 	}
 
@@ -804,10 +814,11 @@ function closeImagePreview() {
 
 /**
  * Close the text editor
+ * Warning: Should not be called directly, use "closePopup" instead
  */
 function closeTextEditor() {
 	// Check if editor is opened
-	if ($('#text-editor').is(":visible")) {
+	if ($('#text-content').is(":visible")) {
 		// Display a confirmation if needed
 		let newContent = $('#text-content').val();
 		if (newContent != lastFileContent) {
@@ -815,11 +826,13 @@ function closeTextEditor() {
 				saveTextFile(lastFile, newContent, true);
 			}, () => {}, '{JS:L:WARNING}');
 		}
-		// Refresh file list
-		displayPrivateFileList('content', getParentDirectory(lastFile), layoutType);
+		// Display edited parent only if the hash is still the file
+		// That means we are closing the popup and not browsing a new file
+		var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
+		if (hash == lastFile) {
+			location.href = '#' + getParentDirectory(lastFile);
+		}
 	}
-	// Hide the editor
-	$('#text-editor').hide();
 }
 
 /**
@@ -940,16 +953,6 @@ function appendFileUpload(container, path) {
 
 // Init some elements
 window.onload = function() {
-
-	// Add buttons for text edit
-	$(getInlineButton('{JS:L:SAVE}', () => saveTextFile(lastFile, $('#text-content').val()), 'prevent-close')).appendTo('#text-controls');
-	$(getInlineButton('{JS:L:CODE}', (e) => {
-		// Toggle code/text mode
-		$('#text-content').toggleClass('code');
-		$(e.target).html($('#text-content')[0].classList.contains('code') ? '{JS:L:TEXT}' : '{JS:L:CODE}');
-		// Disable spell check
-		$('#text-content').attr('spellcheck', $('#text-content').attr('spellcheck') == 'true' ? 'false' : 'true');
-	}, 'prevent-close')).appendTo('#text-controls');
 
 	// Enable indentation support for text editor
 	enableIndentation();
