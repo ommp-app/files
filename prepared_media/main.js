@@ -324,17 +324,45 @@ function editFile(file, type, hasIcon) {
  */
 function resetIcon(folder) {
 	Api.apiRequest('files', 'delete', {'path': folder + '/.hidden/icon'}, r => {
+
 		// Close popup
 		closePopup();
+
 		// Check for errors
 		if (typeof r.error !== 'undefined') {
 			notifError(r.error, '{JS:L:ERROR}');
 			return;
 		}
-		// Display success
-		notif('{JS:L:ICON_RESET}');
-		// Refresh file list
-		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+
+		// Check if we try to restore a special folder icon
+		var specialFolders = {
+			'/{JS:L:DOCUMENTS}': 'documents',
+			'/{JS:L:IMAGES}': 'images',
+			'/{JS:L:VIDEOS}': 'videos',
+			'/{JS:L:MUSICS}': 'musics'
+		}
+		if (Object.keys(specialFolders).includes(folder)) {
+
+			// Try to copy special icon from backup
+			Api.apiRequest('files', 'copy', {'file': '/.hidden/icons_backup/' + specialFolders[folder] + '.svg', 'new_path': folder + '/.hidden', 'new_name': 'icon'}, r => {
+				if (typeof r.error !== 'undefined') {
+					notifError(r.error, '{JS:L:ERROR}');
+					return;
+				}
+				// Display success
+				notif('{JS:L:ICON_RESET}');
+				// Refresh file list
+				displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+			});
+
+		} else {
+
+			// Display success
+			notif('{JS:L:ICON_RESET}');
+			// Refresh file list
+			displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+
+		}
 	});
 }
 

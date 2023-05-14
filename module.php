@@ -228,9 +228,15 @@ function files_process_api($action, $data) {
 
 		// Create default folders and set icons
 		$icons_path = OMMP_ROOT . (is_core_module("files") ? "/core" : "") . "/modules/files/media/folders/";
+		@mkdir($user_dir . "/.hidden/icons_backup/.hidden", 0777, TRUE); // For icons backup
+		@mkdir($user_dir . "/.hidden/.hidden", 0777, TRUE); // For "/.hidden" protection
+		@file_put_contents($user_dir . "/.hidden/protected", ""); // Protect "/" from being deleted
+		@file_put_contents($user_dir . "/.hidden/.hidden/protected", ""); // Protect "/.hidden" from being deleted
+		@file_put_contents($user_dir . "/.hidden/icons_backup/.hidden/protected", ""); // Protect "/.hidden/icons_backup" from being deleted
 		foreach (["documents", "images", "videos", "musics"] as $folder) {
-			@mkdir($user_dir . "/" . $user->module_lang->get($folder) . "/.hidden", 0777, TRUE);
-			@copy($icons_path . $folder . ".svg", $user_dir . "/" . $user->module_lang->get($folder) . "/.hidden/icon");
+			@mkdir($user_dir . "/" . $user->module_lang->get($folder) . "/.hidden", 0777, TRUE); // Create folder
+			@copy($icons_path . $folder . ".svg", $user_dir . "/" . $user->module_lang->get($folder) . "/.hidden/icon"); // Set icons
+			@copy($icons_path . $folder . ".svg", $user_dir . "/.hidden/icons_backup/" . $folder . ".svg"); // Backup icons for restoration
 		}
 
 	}
