@@ -10,6 +10,14 @@ let showHidden = localStorage.getItem('files.show_hidden') || false;
 // Global variable to prevent rescroll on list update
 let preventRescroll = false;
 
+// Special folders created by the system
+let specialFolders = {
+	'/{JS:L:DOCUMENTS}': 'documents',
+	'/{JS:L:IMAGES}': 'images',
+	'/{JS:L:VIDEOS}': 'videos',
+	'/{JS:L:MUSICS}': 'musics'
+};
+
 // Fix negative modulo (thanks JavaScript)
 Number.prototype.mod = function(n) {
 	return ((this % n) + n) % n;
@@ -315,7 +323,7 @@ function editFile(file, type, hasIcon) {
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>' +
 		('{JS:R:files.allow_public_files}' == '1' && type != 'dir' ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="manageSharing(\'' + escapedFileName + '\');">{JS:L:MANAGE_SHARING}</button>' : '') +
 		(type.startsWith('image/') ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="useAsIcon(\'' + escapedFileName + '\');">{JS:L:USE_AS_ICON}</button>' : '') +
-		(type == 'dir' && hasIcon ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="resetIcon(\'' + escapedFileName + '\');">{JS:L:RESET_ICON}</button>' : ''), true);
+		(type == 'dir' && (hasIcon || Object.keys(specialFolders).includes(file)) ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="resetIcon(\'' + escapedFileName + '\');">{JS:L:RESET_ICON}</button>' : ''), true);
 }
 
 /**
@@ -329,18 +337,12 @@ function resetIcon(folder) {
 		closePopup();
 
 		// Check for errors
-		if (typeof r.error !== 'undefined') {
+		if (typeof r.error !== 'undefined' && r.error != '{JS:L:FILE_NOT_FOUND}') {
 			notifError(r.error, '{JS:L:ERROR}');
 			return;
 		}
 
 		// Check if we try to restore a special folder icon
-		var specialFolders = {
-			'/{JS:L:DOCUMENTS}': 'documents',
-			'/{JS:L:IMAGES}': 'images',
-			'/{JS:L:VIDEOS}': 'videos',
-			'/{JS:L:MUSICS}': 'musics'
-		}
 		if (Object.keys(specialFolders).includes(folder)) {
 
 			// Try to copy special icon from backup

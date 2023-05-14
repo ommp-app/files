@@ -876,6 +876,11 @@ function files_process_api($action, $data) {
 		$short_path = prepare_path($data['folder']);
 		$path = $user_dir . $short_path;
 
+		// Check if already exists
+		if (file_exists($path)) {
+			return ["error" => $user->module_lang->get("file_exists")];
+		}
+
 		// Create it
 		$create = @mkdir($path, 0777, TRUE);
 		if (!$create) {

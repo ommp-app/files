@@ -119,7 +119,7 @@
 	"file_too_large": "The file exceeds the maximum size allowed for sending files",
 	"file_exists": "This file already exists",
 	"usage": "Usage: ",
-	"upload_max": "Maximum upload: ",
+	"max_upload": "Maximum upload: ",
 	"edit": "Edit",
 	"rename": "Rename",
 	"move": "Move",
