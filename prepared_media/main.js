@@ -57,7 +57,7 @@ function displayPrivateFileList(container, path, layout='list', reScroll=true) {
 			notifError('{JS:L:UNKNOWN_LAYOUT}', '{JS:L:ERROR}');
 		}
 		// Check if empty
-		if (Object.keys(r.files).length == 0) {
+		if (Object.keys(r.files).length == 0 || (Object.keys(r.files).length == 1 && typeof r.files['.hidden'] !== 'undefined')) {
 			$('#' + container).append('<i class="lighter">{JS:L:EMPTY_DIRECTORY}</i>');
 		}
 		// Add the file uploader
