@@ -239,6 +239,7 @@ function manageSharing(file) {
 	Api.apiRequest('files', 'get-share-status', {'file': file}, r => {
 		// Check for errors
 		if (typeof r.error !== 'undefined' && (typeof r.sharing_allowed === 'undefined' || !r.sharing_allowed)) {
+			closePopup();
 			notifError(r.error, '{JS:L:ERROR}');
 			return;
 		}
@@ -294,15 +295,13 @@ function doDeleteShare(file) {
  */
 function shareFile(file) {
 	Api.apiRequest('files', 'share', {'file': file}, r => {
-		// Close popup
-		closePopup();
 		// Check for errors
 		if (typeof r.error !== 'undefined') {
+			// Close popup and print error
+			closePopup();
 			notifError(r.error, '{JS:L:ERROR}');
 			return;
 		}
-		// Refresh file list
-		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
 		// Display sharing informations
 		manageSharing(r.clean_path);
 	});
