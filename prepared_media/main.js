@@ -186,7 +186,7 @@ function renderLayoutList(container, path, files) {
 		var escapedFileName = escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true);
 		var hasIcon = typeof attributes.has_icon !== 'undefined' && attributes.has_icon;
 		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="editFile(\'' + escapedFileName +
-		'\',\'' + escapeHtmlProperty(attributes.type == 'dir' ? 'dir' : attributes.mime, true) + '\');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName + '\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' +
+		'\',\'' + escapeHtmlProperty(attributes.type == 'dir' ? 'dir' : attributes.mime, true) + '\', ' + hasIcon + ');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName + '\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' +
 		escapedFileName + '\';"><div class="me-2 list-image-bg" style="background:#fff url(&quot;' +
 		escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification, hasIcon, hasIcon ? attributes.icon_version : 0))) + '&quot;) center center/contain no-repeat;"></div>' +
 		escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type + '</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) +
@@ -214,7 +214,7 @@ function renderLayoutGrid(container, path, files) {
 		var hasIcon = typeof attributes.has_icon !== 'undefined' && attributes.has_icon;
 		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapedFileName + '\';">' +
 		'<span class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapedFileName + '\',\'' + escapeHtmlProperty(attributes.type == 'dir' ? 'dir' : attributes.mime, true) +
-		'\');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName +
+		'\', ' + hasIcon + ');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName +
 		'\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<div class="grid-image-bg" style="background:#fff url(&quot;' + 
 		escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification, hasIcon, hasIcon ? attributes.icon_version : 0))) +
 		'&quot;) center center/contain no-repeat;"></div><div class="cut-text">' + escapeHtml(file) + '</div></div>';
@@ -304,8 +304,9 @@ function shareFile(file) {
  * Display the popup to edit a file (rename, move, delete, copy)
  * @param {*} file The file path
  * @param {*} type The mime type of the file (or 'dir' for directories)
+ * @param {*} hasIcon Does the directory has an icon
  */
-function editFile(file, type) {
+function editFile(file, type, hasIcon) {
 	var escapedFileName = escapeHtmlProperty(file, true);
 	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button>' +
@@ -313,7 +314,28 @@ function editFile(file, type) {
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="deleteFile(\'' + escapedFileName + '\');">{JS:L:DELETE}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>' +
 		('{JS:R:files.allow_public_files}' == '1' && type != 'dir' ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="manageSharing(\'' + escapedFileName + '\');">{JS:L:MANAGE_SHARING}</button>' : '') +
-		(type.startsWith('image/') ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="useAsIcon(\'' + escapedFileName + '\');">{JS:L:USE_AS_ICON}</button>' : ''), true);
+		(type.startsWith('image/') ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="useAsIcon(\'' + escapedFileName + '\');">{JS:L:USE_AS_ICON}</button>' : '') +
+		(type == 'dir' && hasIcon ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="resetIcon(\'' + escapedFileName + '\');">{JS:L:RESET_ICON}</button>' : ''), true);
+}
+
+/**
+ * Remove the icon of a folder
+ * @param {*} folder The folder we want to reset the icon
+ */
+function resetIcon(folder) {
+	Api.apiRequest('files', 'delete', {'path': folder + '/.hidden/icon'}, r => {
+		// Close popup
+		closePopup();
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Display success
+		notif('{JS:L:ICON_RESET}');
+		// Refresh file list
+		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+	});
 }
 
 /**
