@@ -176,7 +176,7 @@ function renderLayoutList(container, path, files) {
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
 		var type = is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime);
-		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter" title="{JS:L:EDIT}" onclick="editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
+		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
 		'<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
 		'<div class="me-2 list-image-bg" style="background:#fff url(&quot;' + escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification))) + '&quot;) center center/contain no-repeat;"></div>' +
 		escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type + '</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) +
@@ -198,7 +198,7 @@ function renderLayoutGrid(container, path, files) {
 	for (const [file, attributes] of Object.entries(files)) {
 		var is_dir = attributes.type == 'dir';
 		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
-		'<span class="me-2 lighter" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
+		'<span class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
 		'<div class="grid-image-bg" style="background:#fff url(&quot;' + escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification))) + '&quot;) center center/contain no-repeat;">' +
 		'</div><div class="cut-text">' + escapeHtml(file) + '</div></div>';
 	}
@@ -210,7 +210,6 @@ function renderLayoutGrid(container, path, files) {
  * @param {*} file The file path
  */
 function editFile(file) {
-	console.log(file);
 	var escapedFileName = escapeHtmlProperty(file, true);
 	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button><br />' +
