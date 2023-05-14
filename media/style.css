@@ -88,7 +88,7 @@
     border: 1px solid #E0E0E0;
     border-radius: 1em;
     margin: 1em;
-    padding: 0.5em 1em 0.5em 1em;
+    padding: 0.5em 1em 0.5em 0.5em;
     width: 9.5em;
     cursor: pointer;
 }
@@ -96,6 +96,7 @@
     max-width: 100%;
     height: 5em;
     margin-bottom: 0.75em;
+    margin-left: 0.5em;
 }
 .list-image-bg {
     width: 1.5em;
@@ -119,5 +120,17 @@
     margin-left: 0.5em;
 }
 .file-edit-btn {
-    padding: 0.5em 0.5em 0.5em 0;
+    padding: 0.5em 0.5em 0.5em 0.5em;
+}
+.file-shared-btn {
+    height: 1em;
+    vertical-align: sub;
+    margin-right: 0.5em;
+    cursor: pointer;
+}
+#grid-display .file-shared-btn {
+    vertical-align: text-top!important;
+}
+.grid-element .cut-text {
+    margin-left: 0.5em;
 }

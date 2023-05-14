@@ -4,6 +4,9 @@ let lastFileContent = '', lastFile = '';
 // The current layout type
 let layoutType = localStorage.getItem('files.layout') || 'grid';
 
+// Should we display ".hidden" files
+let showHidden = localStorage.getItem('files.show_hidden') || false;
+
 // Global variable to prevent rescroll on list update
 let preventRescroll = false;
 
@@ -104,11 +107,12 @@ function createFolder(path) {
 	var escapedPath = escapeHtmlProperty(path);
 	var createFunc = 'doCreateFolder(\'' + escapedPath + '\',$(\'#new-folder-name\').val());';
 	popup('{JS:L:NEW_DIR}', '<input type="text" id="new-folder-name" style="width:100%;display:inline-block;" class="form-control" value="" placeholder="' + escapeHtmlProperty('{JS:L:ENTER_NAME}') +
-		'" onkeyup="if(event.key===\'Enter\'){' + createFunc + '}" /><div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + createFunc + '">{JS:L:CREATE}</div>')
+		'" onkeyup="if(event.key===\'Enter\'){' + createFunc + '}" /><div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + createFunc + '">{JS:L:CREATE}</div>');
+	$('#new-folder-name').focus();
 }
 
 /**
- * Call the API to rename a file
+ * Call the API to create a folder
  * @param {*} file 
  */
 function doCreateFolder(path, name) {
@@ -174,11 +178,16 @@ function renderLayoutList(container, path, files) {
 	var content = '<table class="w-100 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th>' + 
 		'<th class="pb-2 w-30 hidden-mobile">{JS:L:LAST_MODIFICATION}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
+		if (file == '.hidden' && !showHidden) {
+			continue;
+		}
 		var is_dir = attributes.type == 'dir';
 		var type = is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime);
-		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
-		'<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
-		'<div class="me-2 list-image-bg" style="background:#fff url(&quot;' + escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification))) + '&quot;) center center/contain no-repeat;"></div>' +
+		var escapedFileName = escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true);
+		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="editFile(\'' + escapedFileName +
+		'\',\'' + escapeHtmlProperty(attributes.type, true) + '\');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName + '\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' +
+		escapedFileName + '\';"><div class="me-2 list-image-bg" style="background:#fff url(&quot;' +
+		escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification, typeof attributes.has_icon !== 'undefined' && attributes.has_icon))) + '&quot;) center center/contain no-repeat;"></div>' +
 		escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type + '</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) +
 		'</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
 	}
@@ -196,26 +205,112 @@ function renderLayoutGrid(container, path, files) {
 	// Display the files
 	var content = '<div id="grid-display">';
 	for (const [file, attributes] of Object.entries(files)) {
+		if (file == '.hidden' && !showHidden) {
+			continue;
+		}
 		var is_dir = attributes.type == 'dir';
-		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\';">' +
-		'<span class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true) + '\');">&bull;&bull;&bull;</span>' +
-		'<div class="grid-image-bg" style="background:#fff url(&quot;' + escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification))) + '&quot;) center center/contain no-repeat;">' +
-		'</div><div class="cut-text">' + escapeHtml(file) + '</div></div>';
+		var escapedFileName = escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true);
+		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapedFileName + '\';">' +
+		'<span class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapedFileName + '\',\'' + escapeHtmlProperty(attributes.type, true) +
+		'\');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName +
+		'\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<div class="grid-image-bg" style="background:#fff url(&quot;' + 
+		escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification, typeof attributes.has_icon !== 'undefined' && attributes.has_icon))) +
+		'&quot;) center center/contain no-repeat;"></div><div class="cut-text">' + escapeHtml(file) + '</div></div>';
 	}
 	$('#' + container).append(content + '</div>');
 }
 
 /**
+ * Display the popup to manage a file sharing
+ * @param {*} file The file to manage
+ */
+function manageSharing(file) {
+	// Call the API to get informations about the file
+	Api.apiRequest('files', 'get-share-status', {'file': file}, r => {
+		// Check for errors
+		if (typeof r.error !== 'undefined' && (typeof r.sharing_allowed === 'undefined' || !r.sharing_allowed)) {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Check if we must display the sharing popup
+		if (typeof r.sharing_allowed !== 'undefined' && r.sharing_allowed) {
+			popup('{JS:L:SHARE_THIS_FILE}', '{JS:L:SHARE_EXPLAIN}<br /><br /><button class="btn btn-outline-dark ms-2 mt-2" onclick="shareFile(\'' + escapeHtmlProperty(file, true) + '\');">{JS:L:SHARE}</button>' +
+			'<button class="btn btn-outline-dark ms-2 mt-2" onclick="closePopup();">{JS:L:CANCEL}</button>');
+		} else {
+			// Display information about the shared file
+			popup('{JS:L:SHARED_FILE}', '{JS:L:PUBLIC_URL}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="{JS:S:SCHEME}://{JS:S:DOMAIN}{JS:S:DIR}public-file/' +
+			escapeHtmlProperty(r.informations.public_hash) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' + ('{JS:C:files.use_shortlinks}' == '1' && r.shortlink !== false ?
+			'<br />{JS:L:SHORT_LINK}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="{JS:S:SCHEME}://{JS:S:DOMAIN}{JS:S:DIR}' + escapeHtmlProperty(r.shortlink.identifier) +
+			'" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' : '') + '<br />{JS:L:LOCATION}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" ' +
+			'value="' + escapeHtmlProperty(r.informations.path) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" /><button class="btn btn-outline-dark ms-2 mt-3" onclick="deleteShare(\'' +
+			escapeHtmlProperty(r.informations.path, true) + '\');">{JS:L:DELETE_SHARE}</button>');
+		}
+	});
+}
+
+/**
+ * Promt user to stop to share a file
+ * @param {*} file The file to stop sharing
+ */
+function deleteShare(file) {
+	popup('{JS:L:DELETE_SHARE}', '{JS:L:CONFIRM_DELETE_SHARE}<br /><br />' +
+	'<button class="btn btn-outline-dark ms-2 mt-2" onclick="doDeleteShare(\'' + escapeHtmlProperty(file, true) + '\');">{JS:L:YES}</button>' +
+	'<button class="btn btn-outline-dark ms-2 mt-2" onclick="closePopup();">{JS:L:NO}</button>');
+}
+
+/**
+ * Call the API to stop sharing a file
+ * @param {*} file The file to stop sharing
+ */
+function doDeleteShare(file) {
+	Api.apiRequest('files', 'stop-sharing', {'file': file}, r => {
+		// Close popup
+		closePopup();
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Display success
+		notif(r.message);
+		// Refresh file list
+		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+	});
+}
+
+/**
+ * Call the API to mage a file public
+ * @param {*} file The file to share
+ */
+function shareFile(file) {
+	Api.apiRequest('files', 'share', {'file': file}, r => {
+		// Close popup
+		closePopup();
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Refresh file list
+		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+		// Display sharing informations
+		manageSharing(r.clean_path);
+	});
+}
+
+/**
  * Display the popup to edit a file (rename, move, delete, copy)
  * @param {*} file The file path
+ * @param {*} type The file type ('file' or 'dir')
  */
-function editFile(file) {
+function editFile(file, type) {
 	var escapedFileName = escapeHtmlProperty(file, true);
 	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button><br />' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="copyFile(\'' + escapedFileName + '\');">{JS:L:COPY}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="deleteFile(\'' + escapedFileName + '\');">{JS:L:DELETE}</button>' +
-		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>', true);
+		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>' +
+		('{JS:R:files.allow_public_files}' == '1' && type == 'file' ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="manageSharing(\'' + escapedFileName + '\');">{JS:L:MANAGE_SHARING}</button>' : ''), true);
 }
 
 /**
@@ -399,7 +494,8 @@ function copyFile(file) {
 function renameFile(file) {
 	var renameFunc = 'doRenameFile(\'' + escapeHtmlProperty(getParentDirectory(file), true) + '\', \'' + escapeHtmlProperty(getFileName(file), true) + '\',$(\'#file-new-name\').val());';
 	popup('{JS:L:RENAME}', '<input type="text" id="file-new-name" style="width:100%;display:inline-block;" class="form-control" value="' + escapeHtmlProperty(getFileName(file)) +'" onkeyup="if(event.key===\'Enter\'){' + renameFunc + '}" />' +
-		'<div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + renameFunc + '">{JS:L:RENAME}</div>')
+		'<div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + renameFunc + '">{JS:L:RENAME}</div>');
+	$('#file-new-name').focus();
 }
 
 /**
@@ -460,7 +556,7 @@ function directorySelector(title, path, button, callback, input=false) {
 
 		// Filter only the directories
 		for (const [file, attributes] of Object.entries(r.files)) {
-			if (attributes.type == 'dir') {
+			if (attributes.type == 'dir' && (file != '.hidden' || showHidden)) {
 				$('#sub-dirs').append(getInlineButton(file, () => {directorySelector(title, r.clean_path + '/' + file, button, callback, input === false ? false : $('#directory-selector-input').val());}, 'mb-2'));
 			}
 		}
@@ -481,6 +577,7 @@ function directorySelector(title, path, button, callback, input=false) {
 function displayQuota(container, usage, quota) {
 	$('#' + container).append('<span class="' + (quota == 0 || usage <= quota ? 'lighter' : 'error') + '">{JS:L:USAGE}' + humanFileSize(usage) + ' / ' + (quota == 0 ? '&infin;' : humanFileSize(quota)) +
 	(quota != 0 ? ('<span class="ms-2">(' + Math.floor(usage / quota * 100) + '%)</span>') : '') + '</span><span class="lighter"> &nbsp;&ndash;&nbsp; {JS:L:MAX_UPLOAD}' + humanFileSize({S:MAX_UPLOAD}) +
+	(('{JS:R:files.allow_public_files}' == '1' && '{JS:R:files.list_public_files}' == '1') ? ' &nbsp;&ndash;&nbsp; <span onclick="showPublicFiles();" style="cursor:pointer;">{JS:L:PUBLIC_FILES}</span>' : '') +
 	('{JS:R:files.use_trash}' == '1' ? ' &nbsp;&ndash;&nbsp; <span onclick="showTrash();" style="cursor:pointer;">{JS:L:TRASH}</span>' : '') + '</span>');
 }
 
@@ -513,17 +610,49 @@ function showTrash() {
 }
 
 /**
+ * Display the list of the public files
+ */
+function showPublicFiles() {
+	Api.apiRequest('files', 'list-public', {}, r => {
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Display the list
+		var filesNumber = Object.keys(r.files).length;
+		if (filesNumber > 0) {
+			var list = '<table><tr class="lighter"><th class="p-2">{JS:L:NAME}</th><th class="p-2">{JS:L:ACTIONS}</th></tr>';
+			for (const file of r.files) {
+				var escapedFile = escapeHtmlProperty(file, true);
+				list += '<tr style="border-top:1px solid #D0D0D0;" class="p-2"><td class="p-2">' + escapeHtml(file) + '</td><td class="p-2">' +
+				'<div onclick="manageSharing(\'' + escapedFile + '\');" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:MANAGE_SHARING}</div>' +
+				'<div onclick="deleteShare(\'' + escapedFile + '\', true);" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:DELETE_SHARE}</div></td></tr>';
+			}
+		} else {
+			list = '<i class="lighter m-5">{JS:L:NO_SHARES}<i>';
+		}
+		popup('{JS:L:PUBLIC_FILES}', list + '</table>');
+	});
+}
+
+/**
  * Return the icon URL for a mime type
  * 
  * @param {*} mime The mime type of the file or 'dir' if it's a directory
  * @param {*} file The file to get icon
  * @param {*} version The version of the file
+ * @param {*} hasIcon For folders only, indicates if the directory has a special icon (optional, default is false)
  * @return The URL of the icon
  */
-function getIcon(mime, file, version) {
+function getIcon(mime, file, version, hasIcon=false) {
 	// Check if directory
 	if (mime == 'dir') {
-		return '{JS:S:DIR}media/files/icons/folder.svg';
+		if (hasIcon) {
+			return '{JS:S:DIR}private-file' + file + '/.hidden/icon?v=' + version + '&s=200';
+		} else {
+			return '{JS:S:DIR}media/files/icons/folder.svg';
+		}
 	}
 	// Special types
 	if (mime == 'application/json') {

@@ -59,8 +59,9 @@ function files_delete_user($id) {
 	$sql->exec("DELETE FROM {$db_prefix}files_public WHERE `owner` = " . $sql->quote($id));
 	$sql->exec("DELETE FROM {$db_prefix}files_quotas WHERE `user_id` = " . $sql->quote($id));
 
-    // Delete all the files
+    // Delete all the files and trash
 	rrmdir(OMMP_ROOT . "/data/files/$id/");
+	rrmdir(OMMP_ROOT . "/data/files/$id.trash/");
 
 }
 
@@ -83,14 +84,16 @@ function files_process_api($action, $data) {
 	 * Return the informations about a file or directory
 	 * 
 	 * @param string $path
-	 * 		The path of the file
+	 * 		The full path of the file
+	 * @param string $short_path
+	 * 		The short path of the file (inside user directory)
 	 * 
 	 * @return array|null
 	 * 		An array containing the informations
 	 * 		NULL is the file does not exists
 	 */
-	function get_file_informations($path) {
-		global $user;
+	function get_file_informations($path, $short_path) {
+		global $user, $db_prefix, $sql;
 		if (!file_exists($path)) {
 			return NULL;
 		}
@@ -102,11 +105,13 @@ function files_process_api($action, $data) {
 			"modification" => filemtime($path),
 			"formatted_modification" => date($user->module_lang->get("date_format"), filemtime($path)),
 			"access" => fileatime($path),
-			"formatted_access" => date($user->module_lang->get("date_format"), fileatime($path))
+			"formatted_access" => date($user->module_lang->get("date_format"), fileatime($path)),
+			"shared" => $is_dir ? FALSE : dbExists("{$db_prefix}files_public", "owner = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($short_path))
 		];
 		// Add special informations for folders
 		if ($is_dir) {
 			$infos['child'] = count(scandir($path)) - 2;
+			$infos['has_icon'] = file_exists($path . "/.hidden/icon");
 			return $infos;
 		}
 		// Add special informations for files
@@ -213,7 +218,17 @@ function files_process_api($action, $data) {
 	// Check if user directory exists
 	$user_dir = OMMP_ROOT . "/data/files/$user->id";
 	if (!is_dir($user_dir)) {
+
+		// Create user directory
 		@mkdir($user_dir, 0777, TRUE);
+
+		// Create default folders and set icons
+		$icons_path = OMMP_ROOT . (is_core_module("files") ? "/core" : "") . "/modules/files/media/folders/";
+		foreach (["documents", "images", "videos", "musics"] as $folder) {
+			@mkdir($user_dir . "/" . $user->module_lang->get($folder) . "/.hidden", 0777, TRUE);
+			@copy($icons_path . $folder . ".svg", $user_dir . "/" . $user->module_lang->get($folder) . "/.hidden/icon");
+		}
+
 	}
 
 	// Check if user trash exists
@@ -264,7 +279,7 @@ function files_process_api($action, $data) {
 			return [
 				"error" => $user->module_lang->get("dir_does_not_exists"),
 				"is_file" => file_exists($path),
-				"file_data" => get_file_informations($path),
+				"file_data" => get_file_informations($path, $short_path),
 				"clean_path" => $short_path
 			];
 		}
@@ -280,7 +295,7 @@ function files_process_api($action, $data) {
 			if ($file == "." || $file == "..") {
 				continue;
 			}
-			$file_data = get_file_informations("$path/$file");
+			$file_data = get_file_informations("$path/$file", "$short_path/$file");
 			if ($file_data['type'] == "dir") {
 				$content_dirs[$file] = $file_data;
 			} else {
@@ -316,7 +331,7 @@ function files_process_api($action, $data) {
 		// Return the data
 		return [
 			"ok" => TRUE,
-			"data" => get_file_informations($path),
+			"data" => get_file_informations($path, $short_path),
 			"clean_path" => $short_path
 		];
 
@@ -434,7 +449,7 @@ function files_process_api($action, $data) {
 
 		// Check if we need to create a directory for renaming
 		$target_parent = dirname($path_new);
-		if (!is_dir($target_parent)) {
+		if (!is_dir($target_parent) && (substr($short_path_new, 0, strlen($short_path_old . "/")) != $short_path_old . "/")) {
 			$create = @mkdir($target_parent, 0777, TRUE);
 			if (!$create) {
 				return ["error" => $user->module_lang->get("cannot_create_dir")];
@@ -447,6 +462,13 @@ function files_process_api($action, $data) {
 		// Search for errors
 		if ($result === FALSE) {
 			return ["error" => $user->module_lang->get("cannot_rename_file")];
+		}
+
+		// Update a potential shared file
+		if (is_dir($path_new)) {
+			$sql->exec("UPDATE {$db_prefix}files_public SET `path` = CONCAT(" . $sql->quote($short_path_new) . ", SUBSTR(`path`, " . strlen($short_path_old . "/") . ")) WHERE owner = " . $sql->quote($user->id) . " AND SUBSTR(`path`, 1, " . strlen($short_path_old . "/") . ") = " . $sql->quote($short_path_old . "/"));
+		} else {
+			$sql->exec("UPDATE {$db_prefix}files_public SET `path` = " . $sql->quote($short_path_new) . " WHERE owner = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($short_path_old));
 		}
 
 		// Return success
@@ -490,6 +512,13 @@ function files_process_api($action, $data) {
 		// Search for errors
 		if ($result === FALSE) {
 			return ["error" => $user->module_lang->get("cannot_move_file")];
+		}
+
+		// Update a potential shared file
+		if (is_dir($path_new)) {
+			$sql->exec("UPDATE {$db_prefix}files_public SET `path` = CONCAT(" . $sql->quote($short_path_new) . ", SUBSTR(`path`, " . strlen($short_path_old . "/") . ")) WHERE owner = " . $sql->quote($user->id) . " AND SUBSTR(`path`, 1, " . strlen($short_path_old . "/") . ") = " . $sql->quote($short_path_old . "/"));
+		} else {
+			$sql->exec("UPDATE {$db_prefix}files_public SET `path` = " . $sql->quote($short_path_new) . " WHERE owner = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($short_path_old));
 		}
 
 		// Return success
@@ -596,6 +625,31 @@ function files_process_api($action, $data) {
 		// Get the size
 		$size = $is_dir ? folder_size($path) : filesize($path);
 
+		// If not from trash, delete the file sharing
+		if (!$from_trash) {
+			// Delete all file sharing associated
+			if ($is_dir) {
+				// For folder, remove all the sub-shared files
+				$where = "`owner` = " . $sql->quote($user->id) . " AND SUBSTR(`path`, 1, " . strlen($short_path . "/") . ") = " . $sql->quote($short_path . "/");
+				$query = $sql->query("SELECT shortlink_id FROM {$db_prefix}files_public WHERE $where");
+				while ($share = $query->fetch()) {
+					if ($share['shortlink_id'] != "0") {
+						module_api_internal_call("shorturl", "delete-link", ["id" => $share['shortlink_id']]);
+					}
+				}
+				$query->closeCursor();
+				$sql->exec("DELETE FROM {$db_prefix}files_public WHERE $where");
+			} else {
+				// For file, match only the deleted file
+				$where = "`owner` = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($short_path);
+				$shortlink_id = dbGetFirstLineSimple("{$db_prefix}files_public", $where, "shortlink_id", TRUE);
+				if ($shortlink_id !== FALSE && $shortlink_id != "0") {
+					module_api_internal_call("shorturl", "delete-link", ["id" => $shortlink_id]);
+				}
+				$sql->exec("DELETE FROM {$db_prefix}files_public WHERE $where");
+			}
+		}
+
 		// Check if must move it to trash
 		if (!$from_trash && $user->has_right("files.use_trash")) {
 
@@ -610,7 +664,7 @@ function files_process_api($action, $data) {
 			if ($result === FALSE) {
 				return ["error" => $user->module_lang->get("cannot_trash")];
 			}
-
+			
 			// Write metadata
 			file_put_contents($trash_path . ".meta", json_encode(["path" => $short_path, "delete_ts" => time(), "size" => $size]));
 
@@ -797,6 +851,175 @@ function files_process_api($action, $data) {
 		return [
 			"ok" => TRUE,
 			"clean_path" => $short_path
+		];
+
+	} else if ($action == "get-share-status") {
+
+		// Check the parameters
+		if (!check_keys($data, ["file"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage public files
+		if (!$user->has_right("files.allow_public_files")) {
+			return ["error" => $user->module_lang->get("public_files_disallowed")];
+		}
+
+		// Get public file informations
+		$file_infos = dbGetFirstLineSimple("{$db_prefix}files_public", "owner = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($data['file']));
+
+		// Check if file is found
+		if ($file_infos === FALSE) {
+			return [
+				"error" => $user->module_lang->get("public_file_not_found"),
+				"sharing_allowed" => !is_dir($user_dir . "/" . prepare_path($data['file']))
+			];
+		}
+
+		// Get shortlinks informations
+		$shortlink_infos = FALSE;
+		if ($config->get("files.use_shortlinks") == "1") {
+			$shortlink = module_api_internal_call("shorturl", "get-informations", ["id" => $file_infos['shortlink_id']]);
+			if (isset($shortlink["ok"]) && isset($shortlink["ok"]) === TRUE) {
+				$shortlink_infos = $shortlink['link'];
+			}
+		}
+
+		// Return the informations
+		return [
+			"ok" => TRUE,
+			"informations" => $file_infos,
+			"shortlink" => $shortlink_infos
+		];
+
+	} else if ($action == "share") {
+
+		// Check the parameters
+		if (!check_keys($data, ["file"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage public files
+		if (!$user->has_right("files.allow_public_files")) {
+			return ["error" => $user->module_lang->get("public_files_disallowed")];
+		}
+
+		// Check if sharing already exists
+		if (dbExists("{$db_prefix}files_public", "owner = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($data['file']))) {
+			return ["error" => $user->module_lang->get("file_already_shared")];
+		}
+
+		// Prepare the path
+		$short_path = prepare_path($data['file']);
+		$path = $user_dir . $short_path;
+
+		// Check if private file exists
+		if (!file_exists($path) || is_dir($path)) {
+			return ["error" => $user->module_lang->get("file_not_found")];
+		}
+
+		// Generate a public hash for the file
+		$public_hash = hash("sha256", $user->id . "-" . hash_file("sha256", $path) . "-" . time() . "-" . rand() . "-" . $short_path);
+
+		// Try to create a short link
+		$short_id = 0;
+		$domain_base = $config->get("ommp.scheme") . "://" . $config->get("ommp.domain") . $config->get("ommp.dir");
+		if ($config->get("files.use_shortlinks") == "1") {
+			$long_link = "{$domain_base}public-file/$public_hash";
+			$short_link = module_api_internal_call("shorturl", "shorten-link", ["url" => $long_link]);
+			if (isset($short_link["ok"]) && isset($short_link["ok"]) === TRUE) {
+				$short_id = $short_link['link']['id'];
+			}
+		}
+
+		// Save share to database
+		$result = $sql->exec("INSERT INTO {$db_prefix}files_public VALUES (" . $sql->quote($public_hash) . ", " . $sql->quote($user->id) . ", " . $sql->quote($short_id) . ", " . $sql->quote($short_path) . ")");
+
+		// Check for error
+		if ($result === FALSE) {
+
+			// In case of error, try to delete the short link
+			if ($config->get("files.use_shortlinks") == "1" && $short_id != 0) {
+				module_api_internal_call("shorturl", "delete-link", ["id" => $short_id]);
+			}
+
+			// Return an error
+			return ["error" => $user->module_lang->get("cannot_share_file")];
+
+		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"clean_path" => $short_path
+		];
+
+	} else if ($action == "stop-sharing") {
+
+		// Check the parameters
+		if (!check_keys($data, ["file"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage public files
+		if (!$user->has_right("files.allow_public_files")) {
+			return ["error" => $user->module_lang->get("public_files_disallowed")];
+		}
+
+		// Prepare request
+		$request = "owner = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($data['file']);
+
+		// Get share informations
+		$share_infos = dbGetFirstLineSimple("{$db_prefix}files_public", $request);
+
+		// Check if sharing exists
+		if ($share_infos === FALSE) {
+			return ["error" => $user->module_lang->get("public_file_not_found")];
+		}
+
+		// Delete from database
+		$result = $sql->exec("DELETE FROM {$db_prefix}files_public WHERE $request");
+
+		// Check for error
+		if ($result === FALSE) {
+			return ["error" => $user->module_lang->get("cannot_delete_share")];
+		}
+
+		// Check if we must delete a shorturl
+		if ($share_infos['shortlink_id'] != "0") {
+			module_api_internal_call("shorturl", "delete-link", ["id" => $share_infos['shortlink_id']]);
+		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"message" => $user->module_lang->get("share_deleted")
+		];
+
+	} else if ($action == "list-public") {
+
+		// Check if user has the right to manage public files
+		if (!$user->has_right("files.allow_public_files")) {
+			return ["error" => $user->module_lang->get("public_files_disallowed")];
+		}
+
+		// Check if user has the right to list public files
+		if (!$user->has_right("files.list_public_files")) {
+			return ["error" => $user->module_lang->get("public_list_disallowed")];
+		}
+
+		// List the files
+		$files = [];
+		$query = $sql->query("SELECT `path` FROM {$db_prefix}files_public WHERE `owner` = " . $sql->quote($user->id));
+		while ($share = $query->fetch()) {
+			$files[] = $share['path'];
+		}
+		$query->closeCursor();
+
+		// Return the files
+		return [
+			"ok" => TRUE,
+			"files" => $files
 		];
 
 	}
