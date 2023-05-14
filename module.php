@@ -66,6 +66,31 @@ function files_delete_user($id) {
 }
 
 /**
+ * Return the prepared path from a given path
+ * 
+ * @param string $path
+ * 		The path to prepare
+ * @return string
+ * 		The prepared path inside the user directory
+ */
+function prepare_path($path) {
+	global $user_dir;
+	$path = str_replace("\\", "/", urldecode($path));
+	$path = str_replace("../", "", $path);
+	$path = str_replace("/..", "", $path);
+	while (strpos($path, "//") !== FALSE) {
+		$path = str_replace("//", "/", $path);
+	}
+	if (substr($path, 0, 1) != "/") {
+		$path = "/" . $path;
+	}
+	if (substr($path, -1) == "/") {
+		$path = substr($path, 0, -1);
+	}
+	return $path;
+}
+
+/**
  * Handle an API call
  * 
  * @param string $action
@@ -118,31 +143,6 @@ function files_process_api($action, $data) {
 		$infos['mime'] = better_mime_type($path);
 		$infos['size'] = filesize($path);
 		return $infos;
-	}
-
-	/**
-	 * Return the prepared path from a given path
-	 * 
-	 * @param string $path
-	 * 		The path to prepare
-	 * @return string
-	 * 		The prepared path inside the user directory
-	 */
-	function prepare_path($path) {
-		global $user_dir;
-		$path = str_replace("\\", "/", urldecode($path));
-		$path = str_replace("../", "", $path);
-		$path = str_replace("/..", "", $path);
-		while (strpos($path, "//") !== FALSE) {
-			$path = str_replace("//", "/", $path);
-		}
-		if (substr($path, 0, 1) != "/") {
-			$path = "/" . $path;
-		}
-		if (substr($path, -1) == "/") {
-			$path = substr($path, 0, -1);
-		}
-		return $path;
 	}
 
 	/**
@@ -1064,31 +1064,74 @@ function files_process_page($page, $pages_path) {
  *      FALSE else (in this case, we will check the url with the remaining modules, order is defined by module's priority value)
  */
 function files_url_handler($url) {
-	global $user, $config;
+	global $user, $config, $db_prefix, $sql;
     
 	// Check if url is a private file loading
-	$path = "";
-	if (substr($url, 0, 13) == "private-file/" && strpos($url, "..") === FALSE && $user->has_right("files.allow_private_files")) {
-		$path = OMMP_ROOT . "/data/files/$user->id/" . substr($url, 13);
-	}
-	//print("PATH: $path");
+	if (substr($url, 0, 13) == "private-file/" && $user->has_right("files.allow_private_files")) {
 
-	// TODO: Public file
+		// Get path
+		$path = OMMP_ROOT . "/data/files/$user->id/" . prepare_path(substr($url, 13));
 
-	// If file exists then we display it
-	if ($path != "" && file_exists($path) && !is_dir($path)) {
+		// If file exists then we display it
+		if ($path != "" && file_exists($path) && !is_dir($path)) {
 
-		// Display thumb if needed and allowed
-		if (isset($_GET['s']) && $config->get("files.images_preview") == "1") {
-			$result = get_image_thumbnail($path, intval($_GET['s']), 75);
-			if ($result) {
-				exit();
+			// Display thumb if needed and allowed
+			if (isset($_GET['s']) && $config->get("files.images_preview") == "1") {
+				$result = get_image_thumbnail($path, intval($_GET['s']), 75);
+				if ($result) {
+					exit();
+				}
 			}
+
+			// Set content type and size
+			header('Content-Type: ' . mime_content_type($path));
+			header('Content-Length: ' . filesize($path));
+
+			// Set cache expiration
+			headers_cache();
+
+			// Read the file
+			readfile($path);
+
+			// Exit to prevent other executions
+			exit();
+
+		}
+
+	}
+	
+	// Check if we try to load a public file
+	else if (substr($url, 0, 12) == "public-file/") {
+		
+		// Get public hash
+		$public_hash = substr($url, 12);
+
+		// Get informations
+		$share = dbGetFirstLineSimple("{$db_prefix}files_public", "public_hash = " . $sql->quote($public_hash));
+
+		// Check for error
+		if ($share === FALSE) {
+			return FALSE;
+		}
+
+		// Check if owner can manage public files
+		$owner = new User(intval($share['owner']));
+		if (!$owner->has_right("files.allow_public_files")) {
+			return FALSE;
+		}
+
+		// Get path
+		$path = OMMP_ROOT . "/data/files/$owner->id/" . prepare_path($share['path']);
+
+		// Check if file exist
+		if (!file_exists($path)) {
+			return FALSE;
 		}
 
 		// Set content type and size
 		header('Content-Type: ' . mime_content_type($path));
 		header('Content-Length: ' . filesize($path));
+		header('Content-disposition: inline; filename="' . str_replace('"', '\\"', basename($path)) . '"');
 
 		// Set cache expiration
 		headers_cache();
