@@ -619,6 +619,11 @@ function files_process_api($action, $data) {
 			return ["error" => $user->module_lang->get("file_not_found")];
 		}
 
+		// Check if folder is protected
+		if (file_exists($path . "/.hidden/protected")) {
+			return ["error" => $user->module_lang->get("cannot_trash")];
+		}
+
 		// Check if is directory
 		$is_dir = is_dir($path);
 
