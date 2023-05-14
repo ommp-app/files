@@ -29,9 +29,10 @@ Number.prototype.mod = function(n) {
  * @param {*} container The id of the parent HTML element
  * @param {*} path The path to display
  * @param {*} layout The layout type, 'list' or 'grid' (default is 'list')
- * @param {*} reScroll Save the scroll after re-draw
+ * @param {*} reScroll Save the scroll after re-draw (optional, default is true)
+ * @param {*} keepPopup Should we keep the popup open (optional, default is false)
  */
-function displayPrivateFileList(container, path, layout='list', reScroll=true) {
+function displayPrivateFileList(container, path, layout='list', reScroll=true, keepPopup=false) {
 	// Prepare path
 	if (!path.startsWith('/')) {
 		path = '/' + path;
@@ -50,7 +51,9 @@ function displayPrivateFileList(container, path, layout='list', reScroll=true) {
 		}
 		// Close the viewers if needed
 		closeImagePreview();
-		closePopup();
+		if (!keepPopup) {
+			closePopup();
+		}
 		// Save the scroll to restore it in case of a refresh
 		var scroll = [window.scrollX, window.scrollY];
 		// Display current dir
@@ -302,6 +305,8 @@ function shareFile(file) {
 			notifError(r.error, '{JS:L:ERROR}');
 			return;
 		}
+		// Refresh file list
+		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType, true, true);
 		// Display sharing informations
 		manageSharing(r.clean_path);
 	});
