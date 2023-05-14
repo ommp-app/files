@@ -194,5 +194,7 @@
 	"musics": "Musiques",
 	"public_files": "Fichiers publiques",
 	"no_shares": "Aucun fichier partagé",
-	"public_list_disallowed": "Vous n'avez pas la permission de lister vos fichiers publiques"
+	"public_list_disallowed": "Vous n'avez pas la permission de lister vos fichiers publiques",
+	"use_as_icon": "Utiliser comme icône",
+	"icon_defined": "L'image a été définié comme icône pour le dossier parent"
 }

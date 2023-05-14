@@ -136,7 +136,11 @@ function files_process_api($action, $data) {
 		// Add special informations for folders
 		if ($is_dir) {
 			$infos['child'] = count(scandir($path)) - 2;
-			$infos['has_icon'] = file_exists($path . "/.hidden/icon");
+			$icon_path = $path . "/.hidden/icon";
+			$infos['has_icon'] = file_exists($icon_path);
+			if ($infos['has_icon']) {
+				$infos['icon_version'] = filemtime($icon_path);
+			}
 			return $infos;
 		}
 		// Add special informations for files
@@ -248,13 +252,33 @@ function files_process_api($action, $data) {
 	}
 
 	// Get user usage
-	$usage = intval(dbGetFirstLineSimple("{$db_prefix}files_quotas", "user_id = " . $sql->quote($user->id), "quota", TRUE));
+	$usage = dbGetFirstLineSimple("{$db_prefix}files_quotas", "user_id = " . $sql->quote($user->id), "quota", TRUE);
 	$max_quota = $user->has_right("files.bypass_quota") ? 0 : intval($config->get("files.quota"));
 
 	// Create quota if needed
 	if ($usage === FALSE) {
+		// Get user files usage
 		$usage = folder_size($user_dir);
+		// Get trash size if needed
+		if (is_dir($user_trash)) {
+			foreach (scandir($user_trash) as $file) {
+				if ($file != "." && $file != ".." && substr($file, -5) != ".meta") {
+					// Get size
+					$trashed_path = $user_trash . "/" . $file;
+					$size = is_dir($trashed_path) ? folder_size($trashed_path) : filesize($trashed_path);
+					$usage += $size;
+					// Update meta file if needed
+					$meta = @json_decode(@file_get_contents($trashed_path . ".meta"));
+					if ($meta !== NULL && isset($meta->size) && $meta->size != $size) {
+						$meta->size = $size;
+						@file_put_contents($trashed_path . ".meta", @json_encode($meta));
+					}
+				}
+			}
+		}
 		$sql->exec("INSERT INTO {$db_prefix}files_quotas VALUES (" . $sql->quote($user->id) . ", $usage)");
+	} else {
+		$usage = intval($usage);
 	}
     
 	if ($action == "list-files") {
