@@ -680,7 +680,7 @@ function directorySelector(title, path, button, callback, input=false) {
  */
 function displayQuota(container, usage, quota) {
 	$('#' + container).append('<span class="' + (quota == 0 || usage <= quota ? 'lighter' : 'error') + '">{JS:L:USAGE}' + humanFileSize(usage) + ' / ' + (quota == 0 ? '&infin;' : humanFileSize(quota)) +
-	(quota != 0 ? ('<span class="ms-2">(' + Math.floor(usage / quota * 100) + '%)</span>') : '') + '</span><span class="lighter"> &nbsp;&ndash;&nbsp; {JS:L:MAX_UPLOAD}' + humanFileSize({S:MAX_UPLOAD}) +
+	(quota != 0 ? ('<span class="ms-2">(' + Math.floor(usage / quota * 100) + '%)</span>') : '') + '</span><span class="lighter"> &nbsp;&ndash;&nbsp; {JS:L:MAX_UPLOAD}' + humanFileSize('{JS:S:MAX_UPLOAD}') +
 	(('{JS:R:files.allow_public_files}' == '1' && '{JS:R:files.list_public_files}' == '1') ? ' &nbsp;&ndash;&nbsp; <span onclick="showPublicFiles();" style="cursor:pointer;">{JS:L:PUBLIC_FILES}</span>' : '') +
 	('{JS:R:files.use_trash}' == '1' ? ' &nbsp;&ndash;&nbsp; <span onclick="showTrash();" style="cursor:pointer;">{JS:L:TRASH}</span>' : '') + '</span>');
 }
@@ -715,8 +715,9 @@ function showTrash() {
 
 /**
  * Display the list of the public files
+ * @param {*} isPublic Are we displaying only for public view (optional, default is false)
  */
-function showPublicFiles() {
+function showPublicFiles(isPublic=false) {
 	Api.apiRequest('files', 'list-public', {}, r => {
 		// Check for errors
 		if (typeof r.error !== 'undefined') {
@@ -730,8 +731,8 @@ function showPublicFiles() {
 			for (const file of r.files) {
 				var escapedFile = escapeHtmlProperty(file, true);
 				list += '<tr style="border-top:1px solid #D0D0D0;" class="p-2"><td class="p-2">' + escapeHtml(file) + '</td><td class="p-2">' +
-				'<div onclick="manageSharing(\'' + escapedFile + '\');" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:MANAGE_SHARING}</div>' +
-				'<div onclick="deleteShare(\'' + escapedFile + '\', true);" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:DELETE_SHARE}</div></td></tr>';
+				'<div onclick="manageSharing(\'' + escapedFile + '\',' + isPublic + ');" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:MANAGE_SHARING}</div>' +
+				'<div onclick="deleteShare(\'' + escapedFile + '\',' + isPublic + ');" class="btn pt-0 pb-0 ps-1 pe-1 ms-1 me-1 btn-light" style="vertical-align: baseline;" role="button" aria-pressed="true">{JS:L:DELETE_SHARE}</div></td></tr>';
 			}
 		} else {
 			list = '<i class="lighter m-5">{JS:L:NO_SHARES}<i>';
@@ -1070,6 +1071,11 @@ function displayPublicFileUploader(container) {
 	// Add the file uploader
 	$('#' + container).removeClass('text-start').append('<h4 class="pt-5 pb-4">{JS:L:UPLOAD_PUBLIC_FILE}</h4><div id="file-upload" class="mt-3 mb-4"></div>');
 	appendFileUpload('file-upload', '/', true);
+	$('#' + container).append('<span class="lighter">{JS:L:MAX_UPLOAD}' + humanFileSize('{JS:S:MAX_UPLOAD}') + '</span>');
+	// Check if we must display link to view public files list
+	if ('{JS:R:files.list_public_files}' == '1') {
+		$('#' + container).append('<span class="lighter"> &nbsp;&ndash;&nbsp; </span><span class="lighter" style="cursor:pointer;" onclick="showPublicFiles(true);">{JS:L:PUBLIC_FILES}</span>');
+	}
 }
 
 // Init some elements
@@ -1077,9 +1083,6 @@ window.onload = function() {
 
 	// Enable indentation support for text editor
 	enableIndentation();
-
-	// Get the hash
-	var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
 
 	// Check if we can display files list
 	if ('{JS:R:files.allow_private_files}' == '1') {
@@ -1092,6 +1095,8 @@ window.onload = function() {
 		displayPrivateFileList('content', path, layoutType);
 		// Listen hash change
 		window.addEventListener('hashchange', (e) => {
+			// Get the hash
+			var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
 			// Update the display and scroll to top
 			displayPrivateFileList('content', hash, layoutType, !preventRescroll);
 			preventRescroll = false;
@@ -1099,7 +1104,9 @@ window.onload = function() {
 	} else if ('{JS:R:files.allow_public_files}' == '1') {
 		// If only public files is allowed
 		displayPublicFileUploader('content');
-		// Check if we must display mange page
+		// Get the hash
+		var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
+		// Check if we must display manage page
 		if (hash.startsWith('manage:')) {
 			manageSharing(decodeURIComponent(hash.substring(7)), true);
 		}
