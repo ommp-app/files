@@ -4,7 +4,7 @@ let lastFileContent = '', lastFile = '';
 // The current layout type
 let layoutType = localStorage.getItem('files.layout') || 'grid';
 
-// Should we display ".hidden" files
+// Should we display hidden files
 let showHidden = localStorage.getItem('files.show_hidden') || false;
 
 // Global variable to prevent rescroll on list update
@@ -60,15 +60,16 @@ function displayPrivateFileList(container, path, layout='list', reScroll=true, k
 		$('#' + container).html('');
 		displayCurrentDir(container, r.clean_path);
 		// Display
+		var filesNumber = 0;
 		if (layout == 'list') {
-			renderLayoutList(container, r.clean_path, r.files);
+			filesNumber = renderLayoutList(container, r.clean_path, r.files);
 		} else if (layout == 'grid') {
 			renderLayoutGrid(container, r.clean_path, r.files);
 		} else {
-			notifError('{JS:L:UNKNOWN_LAYOUT}', '{JS:L:ERROR}');
+			filesNumber = notifError('{JS:L:UNKNOWN_LAYOUT}', '{JS:L:ERROR}');
 		}
 		// Check if empty
-		if (Object.keys(r.files).length == 0 || (Object.keys(r.files).length == 1 && typeof r.files['.hidden'] !== 'undefined')) {
+		if (filesNumber == 0) {
 			$('#' + container).append('<i class="lighter">{JS:L:EMPTY_DIRECTORY}</i>');
 		}
 		// Add the file uploader
@@ -183,27 +184,31 @@ function getInlineButton(content, callback, className='') {
  * @param {*} container The id of the parent element
  * @param {*} path The current path
  * @param {*} files The list of the files as returned by the API
+ * @return {*} The number of files displayed
  */
 function renderLayoutList(container, path, files) {
 	// Display the files
+	var filesNumber = 0;
 	var content = '<table class="w-100 table-layout-fixed"><tr><th class="pb-2 w-30">{JS:L:FILE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:TYPE}</th><th class="pb-2 w-20 hidden-mobile">{JS:L:SIZE} / {JS:L:CHILD}</th>' + 
 		'<th class="pb-2 w-30 hidden-mobile">{JS:L:LAST_MODIFICATION}</th></tr>';
 	for (const [file, attributes] of Object.entries(files)) {
-		if (file == '.hidden' && !showHidden) {
+		var is_dir = attributes.type == 'dir', hidden = is_dir && attributes.hidden;
+		if (hidden && !showHidden) {
 			continue;
 		}
-		var is_dir = attributes.type == 'dir';
 		var type = is_dir ? '{JS:L:DIRECTORY}' : getType(attributes.mime);
 		var escapedFileName = escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true);
 		var hasIcon = typeof attributes.has_icon !== 'undefined' && attributes.has_icon;
-		content += '<tr ><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="editFile(\'' + escapedFileName +
+		content += '<tr' + (hidden ? ' style="opacity:0.5;"' : '') + '><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="editFile(\'' + escapedFileName +
 		'\',\'' + escapeHtmlProperty(attributes.type == 'dir' ? 'dir' : attributes.mime, true) + '\', ' + hasIcon + ');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName + '\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' +
 		escapedFileName + '\';"><div class="me-2 list-image-bg" style="background:#fff url(&quot;' +
 		escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification, hasIcon, hasIcon ? attributes.icon_version : 0))) + '&quot;) center center/contain no-repeat;"></div>' +
 		escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type + '</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) +
 		'</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
+		filesNumber++;
 	}
 	$('#' + container).append(content + '</table>');
+	return filesNumber;
 }
 
 /**
@@ -212,25 +217,29 @@ function renderLayoutList(container, path, files) {
  * @param {*} container The id of the parent element
  * @param {*} path The current path
  * @param {*} files The list of the files as returned by the API
+ * @return {*} The number of files displayed
  */
 function renderLayoutGrid(container, path, files) {
 	// Display the files
+	var filesNumber = 0;
 	var content = '<div id="grid-display">';
 	for (const [file, attributes] of Object.entries(files)) {
-		if (file == '.hidden' && !showHidden) {
+		var is_dir = attributes.type == 'dir', hidden = is_dir && attributes.hidden;
+		if (hidden && !showHidden) {
 			continue;
 		}
-		var is_dir = attributes.type == 'dir';
 		var escapedFileName = escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true);
 		var hasIcon = typeof attributes.has_icon !== 'undefined' && attributes.has_icon;
-		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapedFileName + '\';">' +
+		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapedFileName + '\';"' + (hidden ? ' style="opacity:0.5;"' : '') + '>' +
 		'<span class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapedFileName + '\',\'' + escapeHtmlProperty(attributes.type == 'dir' ? 'dir' : attributes.mime, true) +
 		'\', ' + hasIcon + ');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName +
 		'\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<div class="grid-image-bg" style="background:#fff url(&quot;' + 
 		escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification, hasIcon, hasIcon ? attributes.icon_version : 0))) +
 		'&quot;) center center/contain no-repeat;"></div><div class="cut-text">' + escapeHtml(file) + '</div></div>';
+		filesNumber++;
 	}
 	$('#' + container).append(content + '</div>');
+	return filesNumber;
 }
 
 /**
@@ -343,7 +352,7 @@ function editFile(file, type, hasIcon) {
  * @param {*} folder The folder we want to reset the icon
  */
 function resetIcon(folder) {
-	Api.apiRequest('files', 'delete', {'path': folder + '/.hidden/icon'}, r => {
+	Api.apiRequest('files', 'delete', {'path': folder + '/.meta/icon'}, r => {
 
 		// Close popup
 		closePopup();
@@ -358,7 +367,7 @@ function resetIcon(folder) {
 		if (Object.keys(specialFolders).includes(folder)) {
 
 			// Try to copy special icon from backup
-			Api.apiRequest('files', 'copy', {'file': '/.hidden/icons_backup/' + specialFolders[folder] + '.svg', 'new_path': folder + '/.hidden', 'new_name': 'icon'}, r => {
+			Api.apiRequest('files', 'copy', {'file': '/icons_backup/' + specialFolders[folder] + '.svg', 'new_path': folder + '/.meta', 'new_name': 'icon'}, r => {
 				if (typeof r.error !== 'undefined') {
 					notifError(r.error, '{JS:L:ERROR}');
 					return;
@@ -386,9 +395,9 @@ function resetIcon(folder) {
  */
 function useAsIcon(file) {
 	// Delete current icon if needed
-	Api.apiRequest('files', 'delete', {'path': getParentDirectory(file) + '/.hidden/icon'}, _ => {
+	Api.apiRequest('files', 'delete', {'path': getParentDirectory(file) + '/.meta/icon'}, _ => {
 		// Copy new icon
-		Api.apiRequest('files', 'copy', {'file': file, 'new_path': getParentDirectory(file) + '/.hidden', 'new_name': 'icon'}, r => {
+		Api.apiRequest('files', 'copy', {'file': file, 'new_path': getParentDirectory(file) + '/.meta', 'new_name': 'icon'}, r => {
 			// Close popup
 			closePopup();
 			// Check for errors
@@ -647,7 +656,7 @@ function directorySelector(title, path, button, callback, input=false) {
 
 		// Filter only the directories
 		for (const [file, attributes] of Object.entries(r.files)) {
-			if (attributes.type == 'dir' && (file != '.hidden' || showHidden)) {
+			if (attributes.type == 'dir' && (!attributes.hidden || showHidden)) {
 				$('#sub-dirs').append(getInlineButton(file, () => {directorySelector(title, r.clean_path + '/' + file, button, callback, input === false ? false : $('#directory-selector-input').val());}, 'mb-2'));
 			}
 		}
@@ -741,7 +750,7 @@ function getIcon(mime, file, version, hasIcon=false, iconVersion=0) {
 	// Check if directory
 	if (mime == 'dir') {
 		if (hasIcon) {
-			return '{JS:S:DIR}private-file' + file + '/.hidden/icon?v=' + iconVersion + '&s=200';
+			return '{JS:S:DIR}private-file' + file + '/.meta/icon?v=' + iconVersion + '&s=200';
 		} else {
 			return '{JS:S:DIR}media/files/icons/folder.svg';
 		}

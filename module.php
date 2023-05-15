@@ -136,11 +136,12 @@ function files_process_api($action, $data) {
 		// Add special informations for folders
 		if ($is_dir) {
 			$infos['child'] = count(scandir($path)) - 2;
-			$icon_path = $path . "/.hidden/icon";
+			$icon_path = $path . "/.meta/icon";
 			$infos['has_icon'] = file_exists($icon_path);
 			if ($infos['has_icon']) {
 				$infos['icon_version'] = filemtime($icon_path);
 			}
+			$infos['hidden'] = substr($path, -6) == "/.meta" || file_exists($path . "/.meta/hide");
 			return $infos;
 		}
 		// Add special informations for files
@@ -228,15 +229,15 @@ function files_process_api($action, $data) {
 
 		// Create default folders and set icons
 		$icons_path = OMMP_ROOT . (is_core_module("files") ? "/core" : "") . "/modules/files/media/folders/";
-		@mkdir($user_dir . "/.hidden/icons_backup/.hidden", 0777, TRUE); // For icons backup
-		@mkdir($user_dir . "/.hidden/.hidden", 0777, TRUE); // For "/.hidden" protection
-		@file_put_contents($user_dir . "/.hidden/protected", ""); // Protect "/" from being deleted
-		@file_put_contents($user_dir . "/.hidden/.hidden/protected", ""); // Protect "/.hidden" from being deleted
-		@file_put_contents($user_dir . "/.hidden/icons_backup/.hidden/protected", ""); // Protect "/.hidden/icons_backup" from being deleted
+		@mkdir($user_dir . "/icons_backup/.meta", 0777, TRUE); // For icons backup
+		@mkdir($user_dir . "/.meta", 0777, TRUE); // For "/" protection
+		@file_put_contents($user_dir . "/.meta/protected", ""); // Protect "/" from being deleted
+		@file_put_contents($user_dir . "/icons_backup/.meta/protected", ""); // Protect "/icons_backup" from being deleted
+		@file_put_contents($user_dir . "/icons_backup/.meta/hide", ""); // Hide "/icons_backup"
 		foreach (["documents", "images", "videos", "musics"] as $folder) {
-			@mkdir($user_dir . "/" . $user->module_lang->get($folder) . "/.hidden", 0777, TRUE); // Create folder
-			@copy($icons_path . $folder . ".svg", $user_dir . "/" . $user->module_lang->get($folder) . "/.hidden/icon"); // Set icons
-			@copy($icons_path . $folder . ".svg", $user_dir . "/.hidden/icons_backup/" . $folder . ".svg"); // Backup icons for restoration
+			@mkdir($user_dir . "/" . $user->module_lang->get($folder) . "/.meta", 0777, TRUE); // Create folder
+			@copy($icons_path . $folder . ".svg", $user_dir . "/" . $user->module_lang->get($folder) . "/.meta/icon"); // Set icons
+			@copy($icons_path . $folder . ".svg", $user_dir . "/icons_backup/" . $folder . ".svg"); // Backup icons for restoration
 		}
 
 	}
@@ -489,6 +490,11 @@ function files_process_api($action, $data) {
 			return ["error" => $user->module_lang->get("file_exists")];
 		}
 
+		// Check if folder is protected
+		if (file_exists($path_old . "/.meta/protected")) {
+			return ["error" => $user->module_lang->get("protected_folder")];
+		}
+
 		// Check if we need to create a directory for renaming
 		$target_parent = dirname($path_new);
 		if (!is_dir($target_parent) && (substr($short_path_new, 0, strlen($short_path_old . "/")) != $short_path_old . "/")) {
@@ -546,6 +552,11 @@ function files_process_api($action, $data) {
 		// Check if new file exists
 		if (file_exists($path_new)) {
 			return ["error" => $user->module_lang->get("file_exists")];
+		}
+
+		// Check if folder is protected
+		if (file_exists($path_old . "/.meta/protected")) {
+			return ["error" => $user->module_lang->get("protected_folder")];
 		}
 
 		// Move the file
@@ -662,8 +673,8 @@ function files_process_api($action, $data) {
 		}
 
 		// Check if folder is protected
-		if (file_exists($path . "/.hidden/protected")) {
-			return ["error" => $user->module_lang->get("cannot_trash")];
+		if (file_exists($path . "/.meta/protected")) {
+			return ["error" => $user->module_lang->get("protected_folder")];
 		}
 
 		// Check if is directory
