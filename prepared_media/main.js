@@ -236,8 +236,9 @@ function renderLayoutGrid(container, path, files) {
 /**
  * Display the popup to manage a file sharing
  * @param {*} file The file to manage
+ * @param {*} publicShare Is this share a public file share (when private files is disabled, optional, default is false)
  */
-function manageSharing(file) {
+function manageSharing(file, publicShare=false) {
 	// Call the API to get informations about the file
 	Api.apiRequest('files', 'get-share-status', {'file': file}, r => {
 		// Check for errors
@@ -255,9 +256,9 @@ function manageSharing(file) {
 			popup('{JS:L:SHARED_FILE}', '{JS:L:PUBLIC_URL}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="{JS:S:SCHEME}://{JS:S:DOMAIN}{JS:S:DIR}public-file/' +
 			escapeHtmlProperty(r.informations.public_hash) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' + ('{JS:C:files.use_shortlinks}' == '1' && r.shortlink !== false ?
 			'<br />{JS:L:SHORT_LINK}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="{JS:S:SCHEME}://{JS:S:DOMAIN}{JS:S:DIR}' + escapeHtmlProperty(r.shortlink.identifier) +
-			'" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' : '') + '<br />{JS:L:LOCATION}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" ' +
-			'value="' + escapeHtmlProperty(r.informations.path) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" /><button class="btn btn-outline-dark ms-2 mt-3" onclick="deleteShare(\'' +
-			escapeHtmlProperty(r.informations.path, true) + '\');">{JS:L:DELETE_SHARE}</button>');
+			'" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' : '') + (!publicShare ? '<br />{JS:L:LOCATION}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" ' +
+			'value="' + escapeHtmlProperty(r.informations.path) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' : '' ) + '<button class="btn btn-outline-dark ms-2 mt-3" onclick="deleteShare(\'' +
+			escapeHtmlProperty(r.informations.path, true) + '\',' + publicShare + ');">' + (publicShare ? '{JS:L:DELETE}' : '{JS:L:DELETE_SHARE}') + '</button>');
 		}
 	});
 }
@@ -265,18 +266,20 @@ function manageSharing(file) {
 /**
  * Promt user to stop to share a file
  * @param {*} file The file to stop sharing
+ * @param {*} publicShare Is this share a public file share (when private files is disabled, optional, default is false)
  */
-function deleteShare(file) {
-	popup('{JS:L:DELETE_SHARE}', '{JS:L:CONFIRM_DELETE_SHARE}<br /><br />' +
-	'<button class="btn btn-outline-dark ms-2 mt-2" onclick="doDeleteShare(\'' + escapeHtmlProperty(file, true) + '\');">{JS:L:YES}</button>' +
+function deleteShare(file, publicShare=false) {
+	popup(publicShare ? '{JS:L:DELETE}' : '{JS:L:DELETE_SHARE}', (publicShare ? '{JS:L:CONFIRM_DELETE_PUBLIC_SHARE}' : '{JS:L:CONFIRM_DELETE_SHARE}') + '<br /><br />' +
+	'<button class="btn btn-outline-dark ms-2 mt-2" onclick="doDeleteShare(\'' + escapeHtmlProperty(file, true) + '\',' + !publicShare + ');">{JS:L:YES}</button>' +
 	'<button class="btn btn-outline-dark ms-2 mt-2" onclick="closePopup();">{JS:L:NO}</button>');
 }
 
 /**
  * Call the API to stop sharing a file
  * @param {*} file The file to stop sharing
+ * @param {*} refreshList Should we refresh the private file list (optional, default is true)
  */
-function doDeleteShare(file) {
+function doDeleteShare(file, refreshList=true) {
 	Api.apiRequest('files', 'stop-sharing', {'file': file}, r => {
 		// Close popup
 		closePopup();
@@ -287,16 +290,19 @@ function doDeleteShare(file) {
 		}
 		// Display success
 		notif(r.message);
-		// Refresh file list
-		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+		if (refreshList) {
+			// Refresh file list
+			displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+		}
 	});
 }
 
 /**
  * Call the API to mage a file public
  * @param {*} file The file to share
+ * @param {*} publicShare Is this share a public file share (when private files is disabled, optional, default is false)
  */
-function shareFile(file) {
+function shareFile(file, publicShare=false) {
 	Api.apiRequest('files', 'share', {'file': file}, r => {
 		// Check for errors
 		if (typeof r.error !== 'undefined') {
@@ -305,10 +311,12 @@ function shareFile(file) {
 			notifError(r.error, '{JS:L:ERROR}');
 			return;
 		}
-		// Refresh file list
-		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType, true, true);
+		if (!publicShare) {
+			// Refresh file list
+			displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType, true, true);
+		}
 		// Display sharing informations
-		manageSharing(r.clean_path);
+		manageSharing(r.clean_path, publicShare);
 	});
 }
 
@@ -1002,8 +1010,9 @@ function humanFileSize(bytes, si=false, dp=1) {
  * Prepare the file uploader
  * @param {*} container The id of the element that will contains the uploader
  * @param {*} path The current path
+ * @param {*} publicUpload Are we trying to upload a file in public mode (optional, default is false)
  */
-function appendFileUpload(container, path) {
+function appendFileUpload(container, path, publicUpload=false) {
 	// Enable file upload
 	createFileUpload(container, 'user_file', '{JS:L:UPLOAD}', '{JS:S:DIR}api/files/upload', (xhr, status) => {
 		// Check for file too large error
@@ -1028,11 +1037,26 @@ function appendFileUpload(container, path) {
 			notifError(r.error, '{JS:L:ERROR}');
 			return;
 		}
-		// Display message
-		notif('{JS:L:FILE_UPLOADED}');
-		// Refresh files list
-		displayPrivateFileList('content', path, layoutType);
-	}, {'path': path});
+		if (!publicUpload) {
+			// Display message
+			notif('{JS:L:FILE_UPLOADED}');
+			// Refresh files list
+			displayPrivateFileList('content', path, layoutType);
+		} else {
+			// If public upload, we create the public sharing
+			shareFile(r.clean_path, true);
+		}
+	}, publicUpload ? {'public_upload': true} : {'path': path});
+}
+
+/**
+ * Display the form to upload public files
+ * @param {*} container The container element id
+ */
+function displayPublicFileUploader(container) {
+	// Add the file uploader
+	$('#' + container).removeClass('text-start').append('<h4 class="pt-5 pb-4">{JS:L:UPLOAD_PUBLIC_FILE}</h4><div id="file-upload" class="mt-3 mb-4"></div>');
+	appendFileUpload('file-upload', '/', true);
 }
 
 // Init some elements
@@ -1042,7 +1066,7 @@ window.onload = function() {
 	enableIndentation();
 
 	// Check if we can display files list
-	if ({R:files.allow_private_files}) {
+	if ('{JS:R:files.allow_private_files}' == '1') {
 		// Get path if needed
 		var path = '/';
 		if (location.hash) {
@@ -1058,6 +1082,12 @@ window.onload = function() {
 			displayPrivateFileList('content', hash, layoutType, !preventRescroll);
 			preventRescroll = false;
 		}, false);
+	} else if ('{JS:R:files.allow_public_files}' == '1') {
+		// If only public files is allowed
+		displayPublicFileUploader('content');
+	} else {
+		// If nothing allowed, display an error
+		$('#content').removeClass('text-start').html('<h3 class="lighter pt-5">{JS:L:CANNOT_USE_MODULE}</h3>');
 	}
 	
 }

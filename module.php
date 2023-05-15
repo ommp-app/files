@@ -410,22 +410,34 @@ function files_process_api($action, $data) {
 	} else if ($action == "upload") {
 
 		// Check the parameters
-		if (!check_keys($_FILES, ["user_file"]) || !check_keys($data, ["path"])) {
+		if (!check_keys($_FILES, ["user_file"]) || (!check_keys($data, ["path"]) && !check_keys($data, ["public_upload"]))) {
 			return ["error" => $user->module_lang->get("missing_parameter")];
 		}
 
 		// Check if user has the right to manage private files
-		if (!$user->has_right("files.allow_private_files")) {
+		$public_upload = isset($data['public_upload']) && $data['public_upload'];
+		if (!($user->has_right("files.allow_private_files") || ($public_upload && $user->has_right("files.allow_public_files")))) {
 			return ["error" => $user->module_lang->get("private_files_disallowed")];
 		}
 
 		// Prepare path
-		$short_path = prepare_path($data['path']) . "/" . $_FILES['user_file']['name'];
+		$short_path = $public_upload
+			? ("/public_files/" . split_path(hash("sha256", hash_file("sha256", $_FILES['user_file']['tmp_name']) . "-" . time() . "-" . rand()), 5) . "/" . $_FILES['user_file']['name'])
+			: (prepare_path($data['path']) . "/" . $_FILES['user_file']['name']);
 		$path = $user_dir . $short_path;
 
 		// Check if file exists
 		if (file_exists($path)) {
 			return ["error" => $user->module_lang->get("file_exists")];
+		}
+
+		// Check if we need to create a directory for upload
+		$target_parent = dirname($path);
+		if (!is_dir($target_parent)) {
+			$create = @mkdir($target_parent, 0777, TRUE);
+			if (!$create) {
+				return ["error" => $user->module_lang->get("cannot_create_dir")];
+			}
 		}
 
 		// Check the quota
@@ -944,14 +956,19 @@ function files_process_api($action, $data) {
 			return ["error" => $user->module_lang->get("public_files_disallowed")];
 		}
 
-		// Check if sharing already exists
-		if (dbExists("{$db_prefix}files_public", "owner = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($data['file']))) {
-			return ["error" => $user->module_lang->get("file_already_shared")];
-		}
-
 		// Prepare the path
 		$short_path = prepare_path($data['file']);
 		$path = $user_dir . $short_path;
+
+		// Check if sharing already exists
+		if (dbExists("{$db_prefix}files_public", "owner = " . $sql->quote($user->id) . " AND `path` = " . $sql->quote($data['file']))) {
+			// Already shared does not return an error to allow public uploads
+			return [
+				"ok" => TRUE,
+				"clean_path" => $short_path
+			];
+			//return ["error" => $user->module_lang->get("file_already_shared")];
+		}
 
 		// Check if private file exists
 		if (!file_exists($path) || is_dir($path)) {
@@ -1028,6 +1045,19 @@ function files_process_api($action, $data) {
 		// Check if we must delete a shorturl
 		if ($share_infos['shortlink_id'] != "0") {
 			module_api_internal_call("shorturl", "delete-link", ["id" => $share_infos['shortlink_id']]);
+		}
+
+		// Delete file if private file is disabled
+		if (!$user->has_right("files.allow_private_files")) {
+			// Get path
+			$short_path = $share_infos['path'];
+			$path = $user_dir . $short_path;
+			// Get size
+			$size = filesize($path);
+			// Delete file
+			@unlink($path);
+			// Update quota
+			$sql->exec("UPDATE {$db_prefix}files_quotas SET quota = quota - $size WHERE user_id = " . $sql->quote($user->id));
 		}
 
 		// Return success

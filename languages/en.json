@@ -198,5 +198,8 @@
 	"use_as_icon": "Use as icon",
 	"icon_defined": "Image has been set as icon for parent folder",
 	"reset_icon": "Reset icon",
-	"icon_reset": "Icon reset"
+	"icon_reset": "Icon reset",
+	"cannot_use_module": "You do not have the required rights to use this module",
+	"upload_public_file": "Upload a public file",
+	"confirm_delete_public_share": "If you stop sharing this file, it will no longer be accessible via its public link. The file will also be deleted from the server. Do you want to delete the file?"
 }

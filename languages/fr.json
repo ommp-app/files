@@ -198,5 +198,8 @@
 	"use_as_icon": "Utiliser comme icône",
 	"icon_defined": "L'image a été définié comme icône pour le dossier parent",
 	"reset_icon": "Réinitialiser l'icône",
-	"icon_reset": "Icône réinitialisée"
+	"icon_reset": "Icône réinitialisée",
+	"cannot_use_module": "Vous n'avez pas les droits requis pour utiliser ce module",
+	"upload_public_file": "Envoyer un fichier publique",
+	"confirm_delete_public_share": "Si vous arrêtez de partager ce fichier, il ne sera plus accessible via son lien publique. Le fichier sera également supprimé du serveur. Voulez-vous supprimer le fichier ?"
 }
