@@ -257,17 +257,21 @@ function manageSharing(file, publicShare=false) {
 			return;
 		}
 		// Check if we must display the sharing popup
-		if (typeof r.sharing_allowed !== 'undefined' && r.sharing_allowed) {
+		if (typeof r.sharing_allowed !== 'undefined' && r.sharing_allowed && !publicShare) {
 			popup('{JS:L:SHARE_THIS_FILE}', '{JS:L:SHARE_EXPLAIN}<br /><br /><button class="btn btn-outline-dark ms-2 mt-2" onclick="shareFile(\'' + escapeHtmlProperty(file, true) + '\');">{JS:L:SHARE}</button>' +
 			'<button class="btn btn-outline-dark ms-2 mt-2" onclick="closePopup();">{JS:L:CANCEL}</button>');
+		} else if (typeof r.error !== 'undefined' && publicShare) {
+			notifError(r.error, '{JS:L:ERROR}');
 		} else {
 			// Display information about the shared file
-			popup('{JS:L:SHARED_FILE}', '{JS:L:PUBLIC_URL}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="{JS:S:SCHEME}://{JS:S:DOMAIN}{JS:S:DIR}public-file/' +
+			var httpBase = '{JS:S:SCHEME}://{JS:S:DOMAIN}{JS:S:DIR}';
+			popup('{JS:L:SHARED_FILE}', '{JS:L:PUBLIC_URL}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="' + httpBase + 'public-file/' +
 			escapeHtmlProperty(r.informations.public_hash) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' + ('{JS:C:files.use_shortlinks}' == '1' && r.shortlink !== false ?
-			'<br />{JS:L:SHORT_LINK}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="{JS:S:SCHEME}://{JS:S:DOMAIN}{JS:S:DIR}' + escapeHtmlProperty(r.shortlink.identifier) +
+			'<br />{JS:L:SHORT_LINK}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="' + httpBase + escapeHtmlProperty(r.shortlink.identifier) +
 			'" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' : '') + (!publicShare ? '<br />{JS:L:LOCATION}<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" ' +
-			'value="' + escapeHtmlProperty(r.informations.path) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' : '' ) + '<button class="btn btn-outline-dark ms-2 mt-3" onclick="deleteShare(\'' +
-			escapeHtmlProperty(r.informations.path, true) + '\',' + publicShare + ');">' + (publicShare ? '{JS:L:DELETE}' : '{JS:L:DELETE_SHARE}') + '</button>');
+			'value="' + escapeHtmlProperty(r.informations.path) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' : '<br />{JS:L:MANAGE_URL}<br /><i class="lighter">{JS:L:MANAGE_URL_EXPLAIN}</i>' +
+			'<input class="form-control mb-2 mt-2" style="display:inline-block;" type="text" value="' + httpBase + 'files#manage:' + escapeHtmlProperty(r.informations.path) + '" onclick="this.setSelectionRange(0,this.value.length)" readonly="" />' ) +
+			'<button class="btn btn-outline-dark ms-2 mt-3" onclick="deleteShare(\'' + escapeHtmlProperty(r.informations.path, true) + '\',' + publicShare + ');">' + (publicShare ? '{JS:L:DELETE}' : '{JS:L:DELETE_SHARE}') + '</button>');
 		}
 	});
 }
@@ -1074,6 +1078,9 @@ window.onload = function() {
 	// Enable indentation support for text editor
 	enableIndentation();
 
+	// Get the hash
+	var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
+
 	// Check if we can display files list
 	if ('{JS:R:files.allow_private_files}' == '1') {
 		// Get path if needed
@@ -1085,8 +1092,6 @@ window.onload = function() {
 		displayPrivateFileList('content', path, layoutType);
 		// Listen hash change
 		window.addEventListener('hashchange', (e) => {
-			// Get the path
-			var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
 			// Update the display and scroll to top
 			displayPrivateFileList('content', hash, layoutType, !preventRescroll);
 			preventRescroll = false;
@@ -1094,6 +1099,10 @@ window.onload = function() {
 	} else if ('{JS:R:files.allow_public_files}' == '1') {
 		// If only public files is allowed
 		displayPublicFileUploader('content');
+		// Check if we must display mange page
+		if (hash.startsWith('manage:')) {
+			manageSharing(decodeURIComponent(hash.substring(7)), true);
+		}
 	} else {
 		// If nothing allowed, display an error
 		$('#content').removeClass('text-start').html('<h3 class="lighter pt-5">{JS:L:CANNOT_USE_MODULE}</h3>');

@@ -202,5 +202,7 @@
 	"cannot_use_module": "Vous n'avez pas les droits requis pour utiliser ce module",
 	"upload_public_file": "Envoyer un fichier publique",
 	"confirm_delete_public_share": "Si vous arrêtez de partager ce fichier, il ne sera plus accessible via son lien publique. Le fichier sera également supprimé du serveur. Voulez-vous supprimer le fichier ?",
-	"protected_folder": "Ce dossier est protégé"
+	"protected_folder": "Ce dossier est protégé",
+	"manage_url": "Lien de gestion",
+	"manage_url_explain": "Vous ne devez pas partager ce lien, il vous permet de supprimer le fichier à l'avenir"
 }
