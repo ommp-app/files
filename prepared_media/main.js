@@ -64,9 +64,9 @@ function displayPrivateFileList(container, path, layout='list', reScroll=true, k
 		if (layout == 'list') {
 			filesNumber = renderLayoutList(container, r.clean_path, r.files);
 		} else if (layout == 'grid') {
-			renderLayoutGrid(container, r.clean_path, r.files);
+			filesNumber = renderLayoutGrid(container, r.clean_path, r.files);
 		} else {
-			filesNumber = notifError('{JS:L:UNKNOWN_LAYOUT}', '{JS:L:ERROR}');
+			notifError('{JS:L:UNKNOWN_LAYOUT}', '{JS:L:ERROR}');
 		}
 		// Check if empty
 		if (filesNumber == 0) {
