@@ -13,6 +13,7 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 -- Creates the public files table
+DROP TABLE IF EXISTS `{PREFIX}files_public`;
 CREATE TABLE IF NOT EXISTS `{PREFIX}files_public` (
   `public_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
   `owner` int(11) NOT NULL,
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}files_public` (
 -- Creates the quotas tables
 -- Used to keep the current usage without browsing all the files each time
 -- Only updated when a file is uploaded or changed
+DROP TABLE IF EXISTS `{PREFIX}files_quotas`;
 CREATE TABLE IF NOT EXISTS `{PREFIX}files_quotas` (
   `user_id` int(11) NOT NULL,
   `quota` int(11) NOT NULL,
