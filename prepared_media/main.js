@@ -5,7 +5,7 @@ let lastFileContent = '', lastFile = '';
 let layoutType = localStorage.getItem('files.layout') || 'grid';
 
 // Should we display hidden files
-let showHidden = localStorage.getItem('files.show_hidden') || false;
+let showHidden = localStorage.getItem('files.show_hidden') == '1';
 
 // Global variable to prevent rescroll on list update
 let preventRescroll = false;
@@ -805,7 +805,7 @@ function displayQuota(container, usage, quota) {
  */
 function toggleHidden() {
 	showHidden = !showHidden;
-	localStorage.setItem('files.show_hidden', showHidden);
+	localStorage.setItem('files.show_hidden', showHidden ? '1' : '0');
 	// Refresh file list
 	displayPrivateFileList('content', getPathFromHash(), layoutType, true);
 }
