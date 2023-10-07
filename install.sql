@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}files_public` (
 DROP TABLE IF EXISTS `{PREFIX}files_quotas`;
 CREATE TABLE IF NOT EXISTS `{PREFIX}files_quotas` (
   `user_id` int(11) NOT NULL,
-  `quota` int(11) NOT NULL,
+  `quota` bigint NOT NULL,
   UNIQUE KEY `user_id` (`user_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 COMMIT;
