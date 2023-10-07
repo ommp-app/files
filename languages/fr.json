@@ -204,5 +204,7 @@
 	"confirm_delete_public_share": "Si vous arrêtez de partager ce fichier, il ne sera plus accessible via son lien publique. Le fichier sera également supprimé du serveur. Voulez-vous supprimer le fichier ?",
 	"protected_folder": "Ce dossier est protégé",
 	"manage_url": "Lien de gestion",
-	"manage_url_explain": "Vous ne devez pas partager ce lien, il vous permet de supprimer le fichier à l'avenir"
+	"manage_url_explain": "Vous ne devez pas partager ce lien, il vous permet de supprimer le fichier à l'avenir",
+	"show_hidden_files": "Afficher les fichiers cachés",
+	"hide_hidden_files": "Masquer les fichiers cachés"
 }

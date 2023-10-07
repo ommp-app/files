@@ -150,7 +150,7 @@ function updateLayoutType(layout) {
 		return;
 	}
 	layoutType = layout;
-	displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+	displayPrivateFileList('content', getPathFromHash(), layoutType);
 	localStorage.setItem('files.layout', layout);
 	$('#content').css('textAlign', layout == 'grid' ? 'center' : 'left');
 }
@@ -305,7 +305,7 @@ function doDeleteShare(file, refreshList=true) {
 		notif(r.message);
 		if (refreshList) {
 			// Refresh file list
-			displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+			displayPrivateFileList('content', getPathFromHash(), layoutType);
 		}
 	});
 }
@@ -326,7 +326,7 @@ function shareFile(file, publicShare=false) {
 		}
 		if (!publicShare) {
 			// Refresh file list
-			displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType, true, true);
+			displayPrivateFileList('content', getPathFromHash(), layoutType, true, true);
 		}
 		// Display sharing informations
 		manageSharing(r.clean_path, publicShare);
@@ -379,7 +379,7 @@ function resetIcon(folder) {
 				// Display success
 				notif('{JS:L:ICON_RESET}');
 				// Refresh file list
-				displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+				displayPrivateFileList('content', getPathFromHash(), layoutType);
 			});
 
 		} else {
@@ -387,7 +387,7 @@ function resetIcon(folder) {
 			// Display success
 			notif('{JS:L:ICON_RESET}');
 			// Refresh file list
-			displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+			displayPrivateFileList('content', getPathFromHash(), layoutType);
 
 		}
 	});
@@ -412,7 +412,7 @@ function useAsIcon(file) {
 			// Display success
 			notif('{JS:L:ICON_DEFINED}');
 			// Refresh file list
-			displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+			displayPrivateFileList('content', getPathFromHash(), layoutType);
 		});
 	});
 }
@@ -441,7 +441,7 @@ function doEmptyTrash() {
 		// Display success
 		notif(r.message);
 		// Refresh file list
-		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+		displayPrivateFileList('content', getPathFromHash(), layoutType);
 	});
 }
 
@@ -471,7 +471,7 @@ function doRestoreFile(fileId) {
 		// Display success
 		notif(r.message);
 		// Refresh file list
-		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+		displayPrivateFileList('content', getPathFromHash(), layoutType);
 	});
 }
 
@@ -503,7 +503,7 @@ function doDeleteFile(file, fromTrash=false) {
 		// Display success
 		notif(r.message);
 		// Refresh file list
-		displayPrivateFileList('content', location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash, layoutType);
+		displayPrivateFileList('content', getPathFromHash(), layoutType);
 	});
 }
 
@@ -682,7 +682,25 @@ function displayQuota(container, usage, quota) {
 	$('#' + container).append('<span class="' + (quota == 0 || usage <= quota ? 'lighter' : 'error') + '">{JS:L:USAGE}' + humanFileSize(usage) + ' / ' + (quota == 0 ? '&infin;' : humanFileSize(quota)) +
 	(quota != 0 ? ('<span class="ms-2">(' + Math.floor(usage / quota * 100) + '%)</span>') : '') + '</span><span class="lighter"> &nbsp;&ndash;&nbsp; {JS:L:MAX_UPLOAD}' + humanFileSize('{JS:S:MAX_UPLOAD}') +
 	(('{JS:R:files.allow_public_files}' == '1' && '{JS:R:files.list_public_files}' == '1') ? ' &nbsp;&ndash;&nbsp; <span onclick="showPublicFiles();" style="cursor:pointer;">{JS:L:PUBLIC_FILES}</span>' : '') +
+	(' &nbsp;&ndash;&nbsp; <span id="toggle-hidden" onclick="toggleHidden();" style="cursor:pointer;">' + (showHidden ? '{JS:L:HIDE_HIDDEN_FILES}' : '{JS:L:SHOW_HIDDEN_FILES}') + '</span>') +
 	('{JS:R:files.use_trash}' == '1' ? ' &nbsp;&ndash;&nbsp; <span onclick="showTrash();" style="cursor:pointer;">{JS:L:TRASH}</span>' : '') + '</span>');
+}
+
+/**
+ * Toggle hidden files display
+ */
+function toggleHidden() {
+	showHidden = !showHidden;
+	// Refresh file list
+	displayPrivateFileList('content', getPathFromHash(), layoutType, true);
+}
+
+/**
+ * Return the current path from the page hash
+ * @returns The current path
+ */
+function getPathFromHash() {
+	return location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
 }
 
 /**
@@ -934,7 +952,7 @@ function closeTextEditor() {
 		}
 		// Display edited parent only if the hash is still the file
 		// That means we are closing the popup and not browsing a new file
-		var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
+		var hash = getPathFromHash();
 		if (hash == lastFile) {
 			location.href = '#' + getParentDirectory(lastFile);
 		}
@@ -1096,7 +1114,7 @@ window.onload = function() {
 		// Listen hash change
 		window.addEventListener('hashchange', (e) => {
 			// Get the hash
-			var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
+			var hash = getPathFromHash();
 			// Update the display and scroll to top
 			displayPrivateFileList('content', hash, layoutType, !preventRescroll);
 			preventRescroll = false;
@@ -1105,7 +1123,7 @@ window.onload = function() {
 		// If only public files is allowed
 		displayPublicFileUploader('content');
 		// Get the hash
-		var hash = location.hash.substr(0, 1) == '#' ? location.hash.substr(1) : location.hash;
+		var hash = getPathFromHash();
 		// Check if we must display manage page
 		if (hash.startsWith('manage:')) {
 			manageSharing(decodeURIComponent(hash.substring(7)), true);

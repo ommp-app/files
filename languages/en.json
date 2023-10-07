@@ -204,5 +204,7 @@
 	"confirm_delete_public_share": "If you stop sharing this file, it will no longer be accessible via its public link. The file will also be deleted from the server. Do you want to delete the file?",
 	"protected_folder": "This folder is protected",
 	"manage_url": "Management link",
-	"manage_url_explain": "You must not share this link, it allows you to delete the file in the future"
+	"manage_url_explain": "You must not share this link, it allows you to delete the file in the future",
+	"show_hidden_files": "Show hidden files",
+	"hide_hidden_files": "Hide hidden files"
 }
