@@ -1018,7 +1018,7 @@ function closeTextEditor() {
 		// Display edited parent only if the hash is still the file
 		// That means we are closing the popup and not browsing a new file
 		var hash = getPathFromHash();
-		if (hash == lastFile) {
+		if (decodeURIComponent(hash) == lastFile) {
 			location.href = '#' + getParentDirectory(lastFile);
 		}
 	}
