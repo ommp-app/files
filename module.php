@@ -655,6 +655,9 @@ function files_process_api($action, $data) {
 			return ["error" => $user->module_lang->get("missing_parameter")];
 		}
 
+		// Detect if we want to skip trash
+		$skip_trash = isset($data['skip-trash']) && $data['skip-trash'] == "1";
+
 		// Check if user has the right to manage private files
 		if (!$user->has_right("files.allow_private_files")) {
 			return ["error" => $user->module_lang->get("private_files_disallowed")];
@@ -709,7 +712,7 @@ function files_process_api($action, $data) {
 		}
 
 		// Check if must move it to trash
-		if (!$from_trash && $user->has_right("files.use_trash")) {
+		if (!$from_trash && $user->has_right("files.use_trash") && !$skip_trash) {
 
 			// Get a random name for the trash
 			$random_name = random_str(10);
@@ -908,6 +911,48 @@ function files_process_api($action, $data) {
 		$create = @mkdir($path, 0777, TRUE);
 		if (!$create) {
 			return ["error" => $user->module_lang->get("cannot_create_dir")];
+		}
+
+		// Return success
+		return [
+			"ok" => TRUE,
+			"clean_path" => $short_path
+		];
+
+	} else if ($action == "create-file") {
+
+		// Check the parameters
+		if (!check_keys($data, ["file"])) {
+			return ["error" => $user->module_lang->get("missing_parameter")];
+		}
+
+		// Check if user has the right to manage private files
+		if (!$user->has_right("files.allow_private_files")) {
+			return ["error" => $user->module_lang->get("private_files_disallowed")];
+		}
+
+		// Prepare the path
+		$short_path = prepare_path($data['file']);
+		$path = $user_dir . $short_path;
+
+		// Check if already exists
+		if (file_exists($path)) {
+			return ["error" => $user->module_lang->get("file_exists"), "path" => $path];
+		}
+
+		// Check if we must create parent dir
+		$parent = dirname($path);
+		if (!file_exists($parent)) {
+			$create_parent = @mkdir($parent, 0777, TRUE);
+			if (!$create_parent) {
+				return ["error" => $user->module_lang->get("cannot_create_dir")];
+			}
+		}
+
+		// Create the file
+		$create = file_put_contents($path, "");
+		if ($create === FALSE) {
+			return ["error" => $user->module_lang->get("cannot_create_file")];
 		}
 
 		// Return success

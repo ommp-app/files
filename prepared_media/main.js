@@ -200,8 +200,9 @@ function renderLayoutList(container, path, files) {
 		var escapedFileName = escapeHtmlProperty(path, true) + '/' + escapeHtmlProperty(file, true);
 		var hasIcon = typeof attributes.has_icon !== 'undefined' && attributes.has_icon;
 		content += '<tr' + (hidden ? ' style="opacity:0.5;"' : '') + '><td class="pb-2"><span style="cursor:pointer;" class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="editFile(\'' + escapedFileName +
-		'\',\'' + escapeHtmlProperty(attributes.type == 'dir' ? 'dir' : attributes.mime, true) + '\', ' + hasIcon + ');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName + '\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' +
-		escapedFileName + '\';"><div class="me-2 list-image-bg" style="background:#fff url(&quot;' +
+		'\',\'' + escapeHtmlProperty(attributes.type == 'dir' ? 'dir' : attributes.mime, true) + '\', ' + hasIcon + ', ' + (attributes.hidden ? 'true' : 'false') + ');">&bull;&bull;&bull;</span>' +
+		(attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName + '\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') +
+		'<span style="cursor:pointer;" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapedFileName + '\';"><div class="me-2 list-image-bg" style="background:#fff url(&quot;' +
 		escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification, hasIcon, hasIcon ? attributes.icon_version : 0))) + '&quot;) center center/contain no-repeat;"></div>' +
 		escapeHtml(file) + '</span></td><td class="pb-2 hidden-mobile" title="' + escapeHtmlProperty(type) + '">' + type + '</td><td class="pb-2 hidden-mobile">' + (is_dir ? attributes.child + ' {JS:L:ELEMENTS}' : humanFileSize(attributes.size)) +
 		'</td><td class="pb-2 hidden-mobile">' + escapeHtml(attributes.formatted_modification) + '</td></tr>';
@@ -232,14 +233,54 @@ function renderLayoutGrid(container, path, files) {
 		var hasIcon = typeof attributes.has_icon !== 'undefined' && attributes.has_icon;
 		content += '<div class="grid-element" title="' + escapeHtml(file) + '" onclick="preventRescroll=true;location.href=\'#' + escapedFileName + '\';"' + (hidden ? ' style="opacity:0.5;"' : '') + '>' +
 		'<span class="me-2 lighter file-edit-btn" title="{JS:L:EDIT}" onclick="event.stopPropagation();editFile(\'' + escapedFileName + '\',\'' + escapeHtmlProperty(attributes.type == 'dir' ? 'dir' : attributes.mime, true) +
-		'\', ' + hasIcon + ');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' + escapedFileName +
-		'\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<div class="grid-image-bg" style="background:#fff url(&quot;' + 
+		'\', ' + hasIcon + ', ' + (attributes.hidden ? 'true' : 'false') + ');">&bull;&bull;&bull;</span>' + (attributes.shared ? '<img src="{JS:S:DIR}media/files/share.svg"  onclick="event.stopPropagation();manageSharing(\'' +
+		escapedFileName + '\');" class="file-shared-btn" alt="{JS:L:SHARED}" title="{JS:L:SHARED}" />' : '') + '<div class="grid-image-bg" style="background:#fff url(&quot;' + 
 		escapeHtmlProperty(encodeURI(getIcon(is_dir ? 'dir' : attributes.mime, path + '/' + file, attributes.modification, hasIcon, hasIcon ? attributes.icon_version : 0))) +
 		'&quot;) center center/contain no-repeat;"></div><div class="cut-text">' + escapeHtml(file) + '</div></div>';
 		filesNumber++;
 	}
 	$('#' + container).append(content + '</div>');
 	return filesNumber;
+}
+
+/**
+ * Mark a folder as hidden or not
+ * @param {*} path The path of the folder
+ * @param {*} hide Should we hide the file?
+ */
+function hideFolder(path, hide) {
+	if (!path.endsWith('/')) {
+		path += '/';
+	}
+	if (hide) {
+		// Create the meta file to mark as hidden folder
+		Api.apiRequest('files', 'create-file', {'file': path + '.meta/hide'}, r => {
+			// Check for errors
+			if (typeof r.error !== 'undefined') {
+				closePopup();
+				notifError('{JS:L:CANNOT_HIDE_FILE}', '{JS:L:ERROR}');
+				return;
+			}
+			// Display success
+			notif('{JS:L:FILE_HIDDEN}');
+			// Refresh file list
+			displayPrivateFileList('content', getPathFromHash(), layoutType);
+		});
+	} else {
+		// Removes the meta file
+		Api.apiRequest('files', 'delete', {'path': path + '.meta/hide', 'skip-trash': '1'}, r => {
+			// Check for errors
+			if (typeof r.error !== 'undefined') {
+				closePopup();
+				notifError('{JS:L:CANNOT_UNHIDE_FILE}', '{JS:L:ERROR}');
+				return;
+			}
+			// Display success
+			notif('{JS:L:FILE_SHOWN}');
+			// Refresh file list
+			displayPrivateFileList('content', getPathFromHash(), layoutType);
+		});
+	}
 }
 
 /**
@@ -338,13 +379,15 @@ function shareFile(file, publicShare=false) {
  * @param {*} file The file path
  * @param {*} type The mime type of the file (or 'dir' for directories)
  * @param {*} hasIcon Does the directory has an icon
+ * @param {*} hidden Is the file hidden
  */
-function editFile(file, type, hasIcon) {
+function editFile(file, type, hasIcon, hidden) {
 	var escapedFileName = escapeHtmlProperty(file, true);
 	popup(escapeHtml(getFileName(file)), '<button class="btn btn-outline-dark ms-2 mt-2" onclick="renameFile(\'' + escapedFileName + '\');">{JS:L:RENAME}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="moveFile(\'' + escapedFileName + '\');">{JS:L:MOVE}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="copyFile(\'' + escapedFileName + '\');">{JS:L:COPY}</button>' +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="deleteFile(\'' + escapedFileName + '\');">{JS:L:DELETE}</button>' +
+		(type == 'dir' ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="hideFolder(\'' + escapedFileName + '\', ' + (hidden ? 'false' : 'true') + ');">' + (hidden ? '{JS:L:SHOW}' : '{JS:L:HIDE}') + '</button>' : '') +
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>' +
 		('{JS:R:files.allow_public_files}' == '1' && type != 'dir' ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="manageSharing(\'' + escapedFileName + '\');">{JS:L:MANAGE_SHARING}</button>' : '') +
 		(type.startsWith('image/') ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="useAsIcon(\'' + escapedFileName + '\');">{JS:L:USE_AS_ICON}</button>' : '') +
@@ -691,6 +734,7 @@ function displayQuota(container, usage, quota) {
  */
 function toggleHidden() {
 	showHidden = !showHidden;
+	localStorage.setItem('files.show_hidden', showHidden);
 	// Refresh file list
 	displayPrivateFileList('content', getPathFromHash(), layoutType, true);
 }

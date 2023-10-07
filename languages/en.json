@@ -206,5 +206,12 @@
 	"manage_url": "Management link",
 	"manage_url_explain": "You must not share this link, it allows you to delete the file in the future",
 	"show_hidden_files": "Show hidden files",
-	"hide_hidden_files": "Hide hidden files"
+	"hide_hidden_files": "Hide hidden files",
+	"show": "Show",
+	"hide": "Hide",
+	"cannot_create_file": "Unable to create file",
+	"cannot_hide_file": "Unable to hide the folder",
+	"file_hidden": "The folder has been hidden",
+	"cannot_unhide_file": "Unable to show file",
+	"file_shown": "The folder will no be shown"
 }
