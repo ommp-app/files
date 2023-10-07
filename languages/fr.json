@@ -215,5 +215,10 @@
 	"file_shown": "Le dossier sera désormais affiché",
 	"new_file_folder": "Nouveau fichier / dossier",
 	"create_folder": "Créer un dossier",
-	"create_file": "Créer un fichier"
+	"create_file": "Créer un fichier",
+	"set_icon": "Changer l'icône",
+	"not_image": "Le fichier envoyé n'est pas une image",
+	"cannot_delete_current_icon": "Impossible de supprimer l'icône actuelle",
+	"cannot_set_icon": "Impossible de définir l'icône",
+	"icon_set": "L'icône a été modifée"
 }

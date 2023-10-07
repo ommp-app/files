@@ -459,7 +459,8 @@ function files_process_api($action, $data) {
 		// Return success
 		return [
 			"ok" => TRUE,
-			"clean_path" => $short_path
+			"clean_path" => $short_path,
+			"mime" => better_mime_type($path)
 		];
 
 	} else if ($action == "rename") {

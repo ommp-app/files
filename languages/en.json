@@ -213,8 +213,12 @@
 	"file_hidden": "The folder has been hidden",
 	"cannot_unhide_file": "Unable to show file",
 	"file_shown": "The folder will no be shown",
-	"new_file": "New file",
 	"new_file_folder": "New file / folder",
 	"create_folder": "Create folder",
-	"create_file": "Create file"
+	"create_file": "Create file",
+	"set_icon": "Change icon",
+	"not_image": "THe uploaded file is not an image",
+	"cannot_delete_current_icon": "Unable to delete current icon",
+	"cannot_set_icon": "Unable to set icon",
+	"icon_set": "The icon has been updated"
 }

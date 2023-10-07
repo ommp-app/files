@@ -412,7 +412,57 @@ function editFile(file, type, hasIcon, hidden) {
 		'<button class="btn btn-outline-dark ms-2 mt-2" onclick="informations(\'' + escapedFileName + '\');">{JS:L:INFORMATIONS}</button>' +
 		('{JS:R:files.allow_public_files}' == '1' && type != 'dir' ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="manageSharing(\'' + escapedFileName + '\');">{JS:L:MANAGE_SHARING}</button>' : '') +
 		(type.startsWith('image/') ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="useAsIcon(\'' + escapedFileName + '\');">{JS:L:USE_AS_ICON}</button>' : '') +
-		(type == 'dir' && (hasIcon || Object.keys(specialFolders).includes(file)) ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="resetIcon(\'' + escapedFileName + '\');">{JS:L:RESET_ICON}</button>' : ''), true);
+		(type == 'dir' && (hasIcon || Object.keys(specialFolders).includes(file)) ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="resetIcon(\'' + escapedFileName + '\');">{JS:L:RESET_ICON}</button>' : '') +
+		(type == 'dir' ? '<button class="btn btn-outline-dark ms-2 mt-2" onclick="setIcon(\'' + escapedFileName + '\');">{JS:L:SET_ICON}</button>' : ''), true);
+}
+
+/**
+ * Display the form to upload a new icon for a folder
+ * @param {*} folder The folder we want to change the icon
+ */
+function setIcon(folder) {
+	if (!folder.endsWith('/')) {
+		folder += '/';
+	}
+	popup('{JS:L:SET_ICON}', '<div id="set-icon"></div>', true);
+	appendFileUpload('set-icon', folder + '.meta/', false, r => {
+		closePopup();
+		let clean_path = r.clean_path;
+		// Check mime type
+		if (!r.mime.startsWith('image/')) {
+			// Delete file
+			Api.apiRequest('files', 'delete', {'path': clean_path, 'skip-trash': '1'}, r => {});
+			// Display an error
+			notifError('{JS:L:NOT_IMAGE}', '{JS:L:ERROR}');
+			return;
+		}
+		// Delete current icon if exists
+		Api.apiRequest('files', 'delete', {'path': folder + '.meta/icon', 'skip-trash': '1'}, r => {
+			// Check for errors
+			if (typeof r.error !== 'undefined' && r.error != '{JS:L:FILE_NOT_FOUND}') {
+				// Delete file
+				Api.apiRequest('files', 'delete', {'path': clean_path, 'skip-trash': '1'}, r => {});
+				// Display error
+				notifError('{JS:L:CANNOT_DELETE_CURRENT_ICON}<br /><br /><i>' + r.error + '</i>', '{JS:L:ERROR}');
+				return;
+			}
+			// Move the image to be the icon
+			Api.apiRequest('files', 'rename', {'path': folder + '.meta', 'old_name': clean_path.split('/').pop(), 'new_name': 'icon'}, r => {
+				// Check for errors
+				if (typeof r.error !== 'undefined') {
+					// Delete file
+					Api.apiRequest('files', 'delete', {'path': clean_path, 'skip-trash': '1'}, r => {});
+					// Display error
+					notifError('{JS:L:CANNOT_SET_ICON}<br /><br /><i>' + r.error + '</i>', '{JS:L:ERROR}');
+					return;
+				}
+				// Display success
+				notif('{JS:L:ICON_SET}');
+				// Refresh file list
+				displayPrivateFileList('content', getPathFromHash(), layoutType);
+			})
+		});
+	});
 }
 
 /**
@@ -420,7 +470,7 @@ function editFile(file, type, hasIcon, hidden) {
  * @param {*} folder The folder we want to reset the icon
  */
 function resetIcon(folder) {
-	Api.apiRequest('files', 'delete', {'path': folder + '/.meta/icon'}, r => {
+	Api.apiRequest('files', 'delete', {'path': folder + '/.meta/icon', 'skip-trash': '1'}, r => {
 
 		// Close popup
 		closePopup();
@@ -1108,8 +1158,9 @@ function humanFileSize(bytes, si=false, dp=1) {
  * @param {*} container The id of the element that will contains the uploader
  * @param {*} path The current path
  * @param {*} publicUpload Are we trying to upload a file in public mode (optional, default is false)
+ * @param {*} successCallback A function to call on success instead of performing normal steps (response will be passed as an argument)
  */
-function appendFileUpload(container, path, publicUpload=false) {
+function appendFileUpload(container, path, publicUpload=false, successCallback=null) {
 	// Enable file upload
 	createFileUpload(container, 'user_file', '{JS:L:UPLOAD}', '{JS:S:DIR}api/files/upload', (xhr, status) => {
 		// Check for file too large error
@@ -1132,6 +1183,10 @@ function appendFileUpload(container, path, publicUpload=false) {
 		// Check for errors
 		if (typeof r.error !== 'undefined') {
 			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		if (successCallback !== null) {
+			successCallback(r);
 			return;
 		}
 		if (!publicUpload) {
