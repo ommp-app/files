@@ -167,7 +167,6 @@
 	"empty_trash_error": "Impossible de vider complètement la corbeille",
 	"paste": "Coller",
 	"dir": "Répertoire",
-	"new_dir": "Nouveau dossier",
 	"create": "Créer",
 	"enter_name": "Entrez un nom",
 	"manage_sharing": "Gérer le partage",
@@ -213,5 +212,8 @@
 	"cannot_hide_file": "Impossible de cacher le dossier",
 	"file_hidden": "Le dossier a été caché",
 	"cannot_unhide_file": "Impossible d'afficher le dossier",
-	"file_shown": "Le dossier sera désormais affiché"
+	"file_shown": "Le dossier sera désormais affiché",
+	"new_file_folder": "Nouveau fichier / dossier",
+	"create_folder": "Créer un dossier",
+	"create_file": "Créer un fichier"
 }

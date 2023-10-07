@@ -108,7 +108,7 @@ function displayCurrentDir(container, path) {
 		$('#current-path').append(getInlineButton(dir || '{JS:L:MY_FILES}', () => {location.href = '#' + path;}));
 		$('#current-path').append('/');
 	});
-	$('#current-path').append('<img src="{JS:S:DIR}media/files/plus.svg" onclick="createFolder(\'' + escapeHtmlProperty(path, true) + '\');" id="new-folder" alt="{JS:L:NEW_DIR}" title="{JS:L:NEW_DIR}" />');
+	$('#current-path').append('<img src="{JS:S:DIR}media/files/plus.svg" onclick="createFolder(\'' + escapeHtmlProperty(path, true) + '\');" id="new-folder" alt="{JS:L:NEW_FILE_FOLDER}" title="{JS:L:NEW_FILE_FOLDER}" />');
 }
 
 /**
@@ -117,18 +117,39 @@ function displayCurrentDir(container, path) {
  */
 function createFolder(path) {
 	var escapedPath = escapeHtmlProperty(path);
-	var createFunc = 'doCreateFolder(\'' + escapedPath + '\',$(\'#new-folder-name\').val());';
-	popup('{JS:L:NEW_DIR}', '<input type="text" id="new-folder-name" style="width:100%;display:inline-block;" class="form-control" value="" placeholder="' + escapeHtmlProperty('{JS:L:ENTER_NAME}') +
-		'" onkeyup="if(event.key===\'Enter\'){' + createFunc + '}" /><div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="' + createFunc + '">{JS:L:CREATE}</div>');
+	var createFunc = '(\'' + escapedPath + '\',$(\'#new-folder-name\').val());';
+	popup('{JS:L:NEW_FILE_FOLDER}', '<input type="text" id="new-folder-name" style="width:100%;display:inline-block;" class="form-control" value="" placeholder="' + escapeHtmlProperty('{JS:L:ENTER_NAME}') +
+		'"/><div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="doCreateFolder' + createFunc + '">{JS:L:CREATE_FOLDER}</div>' +
+		'<div class="btn ms-2 mt-2 me-2 pt-1 pb-1 btn-light" style="vertical-align:baseline;" role="button" aria-pressed="true" onclick="doCreateFile' + createFunc + '">{JS:L:CREATE_FILE}</div>');
 	$('#new-folder-name').focus();
 }
 
 /**
  * Call the API to create a folder
- * @param {*} file 
+ * @param {*} path The path where to create the folder
+ * @param {*} name The new folder name
  */
 function doCreateFolder(path, name) {
 	Api.apiRequest('files', 'create-folder', {'folder': path + '/' + name}, r => {
+		// Check for errors
+		if (typeof r.error !== 'undefined') {
+			notifError(r.error, '{JS:L:ERROR}');
+			return;
+		}
+		// Refresh file list
+		displayPrivateFileList('content', path, layoutType);
+		// Close the popup
+		closePopup();
+	});
+}
+
+/**
+ * Call the API to create an empty file
+ * @param {*} path The path where to create the file
+ * @param {*} name The new file name
+ */
+function doCreateFile(path, name) {
+	Api.apiRequest('files', 'create-file', {'file': path + '/' + name}, r => {
 		// Check for errors
 		if (typeof r.error !== 'undefined') {
 			notifError(r.error, '{JS:L:ERROR}');

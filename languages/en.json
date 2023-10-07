@@ -167,7 +167,6 @@
 	"empty_trash_error": "Unable to completely empty the trash",
 	"paste": "Paste",
 	"dir": "Directory",
-	"new_dir": "New folder",
 	"create": "Create",
 	"enter_name": "Enter a name",
 	"manage_sharing": "Manage sharing",
@@ -213,5 +212,9 @@
 	"cannot_hide_file": "Unable to hide the folder",
 	"file_hidden": "The folder has been hidden",
 	"cannot_unhide_file": "Unable to show file",
-	"file_shown": "The folder will no be shown"
+	"file_shown": "The folder will no be shown",
+	"new_file": "New file",
+	"new_file_folder": "New file / folder",
+	"create_folder": "Create folder",
+	"create_file": "Create file"
 }
