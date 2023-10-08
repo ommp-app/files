@@ -981,6 +981,8 @@ function previewPrivateFile(file, path) {
 				location.href = $('#image-prev').attr('href');
 			} else if (e.key == 'ArrowRight') {
 				location.href = $('#image-next').attr('href');
+			} else if (e.key == 'Escape') {
+				location.href = '#' + parent;
 			} else {
 				return;
 			}
