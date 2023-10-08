@@ -18,11 +18,6 @@ let specialFolders = {
 	'/{JS:L:MUSICS}': 'musics'
 };
 
-// Fix negative modulo (thanks JavaScript)
-Number.prototype.mod = function(n) {
-	return ((this % n) + n) % n;
-}
-
 /**
  * Display the list of private files
  * 
